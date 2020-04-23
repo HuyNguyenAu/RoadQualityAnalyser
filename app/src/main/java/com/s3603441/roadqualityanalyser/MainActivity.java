@@ -11,6 +11,7 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.LineChart;
@@ -27,6 +28,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // Controls.
     private TextView textView_timer;
     private LineChart lineChart;
+    private SeekBar seekBar_smoothing;
     private Button button_start_stop;
 
     // Accelerometer.
@@ -34,7 +36,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor accelerometer;
     // Accelerometer data.
     private int d;
-    private List<Float> accelX;
+    private long lastUpdated;
+    float smoothing;
+    private List<Float> rawAccelX;
+    private List<Float> filteredAccelX;
     // Line chart control.
     private Thread thread;
     private boolean plot;
@@ -51,10 +56,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Register controls.
         textView_timer = findViewById(R.id.textView_timer);
         lineChart = findViewById(R.id.linechart);
+        seekBar_smoothing = findViewById(R.id.seekBar_smoothing);
         button_start_stop = findViewById(R.id.button_start_stop);
 
         d = 2;
-        accelX = new ArrayList<>();
+        lastUpdated = 0l;
+        smoothing = 1;
+        rawAccelX = new ArrayList<>();
+        filteredAccelX = new ArrayList<>();
         // By default, the app does not plot data.
         plot = false;
         start = false;
@@ -83,6 +92,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (thread != null){
             thread.interrupt();
         }
+
+        // Source: https://stackoverflow.com/questions/33349424/android-seekbar-changing-the-value
+        seekBar_smoothing.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (progress <= 0) {
+                    progress = 1;
+                }
+
+                smoothing = Float.valueOf(progress);
+                textView_timer.setText(String.valueOf(smoothing));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
 
         // Create a new thread to control when to plot the accelerometer data.
         thread = new Thread(new Runnable() {
@@ -136,10 +164,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 continue;
             }
 
-            result += (Math.abs(accelX.get(j) - accelX.get(j - 1))) / Float.valueOf(d);
+            result += (Math.abs(data.get(j) - data.get(j - 1))) / Float.valueOf(d);
         }
 
         return result;
+    }
+
+    private float lowPassFilter(final float oldValue, final float newValue, final float smoothing,
+                                long delta) {
+        return oldValue + (newValue - oldValue) / (smoothing / Float.valueOf(delta));
     }
 
     // Create a new line data set.
@@ -189,7 +222,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //                    lineData.addDataSet(dataSetZ);
 //                }
 
-                accelX.add(event.values[0]);
+                rawAccelX.add(event.values[0]);
+
+                // Low pass filter.
+                if (rawAccelX.size() > 1) {
+                    final float oldValue = rawAccelX.get(rawAccelX.size() - 2);
+                    final float newValue = rawAccelX.get(rawAccelX.size() - 1);
+                    long delta = System.currentTimeMillis() - lastUpdated;
+
+                    if (rawAccelX.size() == 2) {
+                        delta = 1;
+                    }
+
+                    filteredAccelX.add(lowPassFilter(oldValue, newValue, smoothing, delta));
+                    lastUpdated = System.currentTimeMillis();
+                }
 
                 // Added a new entry into the data set.
 //                lineData.addEntry(new Entry(dataSetX.getEntryCount(), event.values[0]), 0);
@@ -197,8 +244,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //                lineData.addEntry(new Entry(dataSetZ.getEntryCount(), event.values[2]), 2);
 
                 // Update the line chart and move the new data into view.
-                if (initialLimit(accelX.size(), d)) {
-                    lineData.addEntry(new Entry(dataSetX.getEntryCount(), windowFilter(accelX, d)), 0);
+                if (initialLimit(filteredAccelX.size(), d)) {
+                    lineData.addEntry(new Entry(dataSetX.getEntryCount(), windowFilter(filteredAccelX, d)), 0);
                     lineData.notifyDataChanged();
                     lineChart.notifyDataSetChanged();
                     lineChart.setVisibleXRangeMaximum(150);
