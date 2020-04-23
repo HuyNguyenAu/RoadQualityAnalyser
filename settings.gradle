@@ -1,0 +1,2 @@
+rootProject.name='Road Quality Analyser'
+include ':app'
