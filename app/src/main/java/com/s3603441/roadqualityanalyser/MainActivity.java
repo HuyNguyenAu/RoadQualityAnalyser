@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // Accelerometer.
     private SensorManager sensorManager;
     private Sensor accelerometer;
-    // Line Chart Control.
+    // Line chart control.
     private Thread thread;
     private boolean plot;
     // Tells the line chart to start or stop plotting.
@@ -102,11 +102,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         thread.start();
     }
 
-    private LineDataSet createSet() {
-        LineDataSet set = new LineDataSet(null, "Dynamic Data");
+    // Create a new line data set.
+    private LineDataSet createDataSet(final String label, final int color) {
+        LineDataSet set = new LineDataSet(null, label);
         set.setAxisDependency(YAxis.AxisDependency.LEFT);
         set.setLineWidth(3f);
-        set.setColor(Color.MAGENTA);
+        set.setColor(color);
         set.setHighlightEnabled(false);
         set.setDrawValues(false);
         set.setDrawCircles(false);
@@ -129,30 +130,37 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if(plot){
                 LineData lineData = lineChart.getData();
 
-                if (lineData != null) {
+                // Try to get the data sets.
+                ILineDataSet dataSetX = lineData.getDataSetByIndex(0);
+                ILineDataSet dataSetY = lineData.getDataSetByIndex(1);
+                ILineDataSet dataSetZ = lineData.getDataSetByIndex(2);
 
-                    ILineDataSet set = lineData.getDataSetByIndex(0);
-
-                    if (set == null) {
-                        set = createSet();
-                        lineData.addDataSet(set);
-                    }
-
-                    lineData.addEntry(new Entry(set.getEntryCount(), event.values[0]), 0);
-                    lineData.notifyDataChanged();
-
-                    // let the chart know it's data has changed
-                    lineChart.notifyDataSetChanged();
-
-                    // limit the number of visible entries
-                    lineChart.setVisibleXRangeMaximum(150);
-                    // mChart.setVisibleYRange(30, AxisDependency.LEFT);
-
-                    // move to the latest entry
-                    lineChart.moveViewToX(lineData.getEntryCount());
-
+                // If the line data sets do not exist, then create a new one.
+                if (dataSetX == null) {
+                    dataSetX = createDataSet("X", Color.RED);
+                    lineData.addDataSet(dataSetX);
+                }
+                if (dataSetY == null) {
+                    dataSetY = createDataSet("Y", Color.BLUE);
+                    lineData.addDataSet(dataSetY);
+                }
+                if (dataSetZ == null) {
+                    dataSetZ = createDataSet("Z", Color.GREEN);
+                    lineData.addDataSet(dataSetZ);
                 }
 
+                // Added a new entry into the data set.
+                lineData.addEntry(new Entry(dataSetX.getEntryCount(), event.values[0]), 0);
+                lineData.addEntry(new Entry(dataSetY.getEntryCount(), event.values[1]), 1);
+                lineData.addEntry(new Entry(dataSetZ.getEntryCount(), event.values[2]), 2);
+
+                // Update the line chart and move the new data into view.
+                lineData.notifyDataChanged();
+                lineChart.notifyDataSetChanged();
+                lineChart.setVisibleXRangeMaximum(150);
+                lineChart.moveViewToX(lineData.getEntryCount());
+
+                // Stop plotting and wait until plotting is allowed.
                 plot = false;
             }
         }
