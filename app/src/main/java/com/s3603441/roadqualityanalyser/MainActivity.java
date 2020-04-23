@@ -36,10 +36,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor accelerometer;
     // Accelerometer data.
     private int d;
-    private long lastUpdated;
     float smoothing;
-    private List<Float> rawAccelX;
-    private List<Float> filteredAccelX;
+    private List<AccelerometerData> rawAccelData;
+    private List<AccelerometerData> filteredAccelData;
     // Line chart control.
     private Thread thread;
     private boolean plot;
@@ -60,10 +59,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         button_start_stop = findViewById(R.id.button_start_stop);
 
         d = 2;
-        lastUpdated = 0l;
         smoothing = 1;
-        rawAccelX = new ArrayList<>();
-        filteredAccelX = new ArrayList<>();
+        rawAccelData = new ArrayList<>();
+        filteredAccelData = new ArrayList<>();
         // By default, the app does not plot data.
         plot = false;
         start = false;
@@ -154,7 +152,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return allow;
     }
 
-    private float windowFilter(final List<Float> data, final int d) {
+    private float windowFilter(final List<AccelerometerData> data, final int d, final int index) {
         final int windowSize = getWindowSize(d);
         final int offset = data.size() - windowSize;
         float result = 0f;
@@ -164,7 +162,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 continue;
             }
 
-            result += (Math.abs(data.get(j) - data.get(j - 1))) / Float.valueOf(d);
+            float k = 0f;
+            float k1 = 0f;
+
+            if (index == 0) {
+                k = data.get(j).getX();
+                k1 = data.get(j - 1).getX();
+            } else  if (index == 1) {
+                k = data.get(j).getY();
+                k1 = data.get(j - 1).getY();
+            } else  if (index == 2) {
+                k = data.get(j).getZ();
+                k1 = data.get(j - 1).getZ();
+            }
+
+            result += (Math.abs(k - k1)) / Float.valueOf(d);
         }
 
         return result;
@@ -205,37 +217,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 // Try to get the data sets.
                 ILineDataSet dataSetX = lineData.getDataSetByIndex(0);
-//                ILineDataSet dataSetY = lineData.getDataSetByIndex(1);
-//                ILineDataSet dataSetZ = lineData.getDataSetByIndex(2);
+                ILineDataSet dataSetY = lineData.getDataSetByIndex(1);
+                ILineDataSet dataSetZ = lineData.getDataSetByIndex(2);
 
                 // If the line data sets do not exist, then create a new one.
                 if (dataSetX == null) {
                     dataSetX = createDataSet("X", Color.RED);
                     lineData.addDataSet(dataSetX);
                 }
-//                if (dataSetY == null) {
-//                    dataSetY = createDataSet("Y", Color.BLUE);
-//                    lineData.addDataSet(dataSetY);
-//                }
-//                if (dataSetZ == null) {
-//                    dataSetZ = createDataSet("Z", Color.GREEN);
-//                    lineData.addDataSet(dataSetZ);
-//                }
+                if (dataSetY == null) {
+                    dataSetY = createDataSet("Y", Color.BLUE);
+                    lineData.addDataSet(dataSetY);
+                }
+                if (dataSetZ == null) {
+                    dataSetZ = createDataSet("Z", Color.GREEN);
+                    lineData.addDataSet(dataSetZ);
+                }
 
-                rawAccelX.add(event.values[0]);
+                rawAccelData.add(new AccelerometerData(event.values[0], event.values[1], event.values[2], System.currentTimeMillis()));
 
                 // Low pass filter.
-                if (rawAccelX.size() > 1) {
-                    final float oldValue = rawAccelX.get(rawAccelX.size() - 2);
-                    final float newValue = rawAccelX.get(rawAccelX.size() - 1);
-                    long delta = System.currentTimeMillis() - lastUpdated;
+                if (rawAccelData.size() > 1) {
+                    final AccelerometerData oldValue = rawAccelData.get(rawAccelData.size() - 2);
+                    final AccelerometerData newValue = rawAccelData.get(rawAccelData.size() - 1);
+                    long delta = newValue.getTimeCreated() - oldValue.getTimeCreated();
 
-                    if (rawAccelX.size() == 2) {
+                    if (rawAccelData.size() == 2) {
                         delta = 1;
                     }
 
-                    filteredAccelX.add(lowPassFilter(oldValue, newValue, smoothing, delta));
-                    lastUpdated = System.currentTimeMillis();
+                    final float filteredX = lowPassFilter(oldValue.getX(), newValue.getX(), smoothing, delta);
+                    final float filteredY = lowPassFilter(oldValue.getY(), newValue.getY(), smoothing, delta);
+                    final float filteredZ = lowPassFilter(oldValue.getZ(), newValue.getZ(), smoothing, delta);
+
+                    filteredAccelData.add(new AccelerometerData(filteredX, filteredY, filteredZ, System.currentTimeMillis()));
                 }
 
                 // Added a new entry into the data set.
@@ -244,8 +259,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //                lineData.addEntry(new Entry(dataSetZ.getEntryCount(), event.values[2]), 2);
 
                 // Update the line chart and move the new data into view.
-                if (initialLimit(filteredAccelX.size(), d)) {
-                    lineData.addEntry(new Entry(dataSetX.getEntryCount(), windowFilter(filteredAccelX, d)), 0);
+                if (initialLimit(filteredAccelData.size(), d)) {
+                    lineData.addEntry(new Entry(dataSetX.getEntryCount(), windowFilter(filteredAccelData, d, 0)), 0);
+                    lineData.addEntry(new Entry(dataSetY.getEntryCount(), windowFilter(filteredAccelData, d, 1)), 1);
+                    lineData.addEntry(new Entry(dataSetZ.getEntryCount(), windowFilter(filteredAccelData, d, 2)), 2);
                     lineData.notifyDataChanged();
                     lineChart.notifyDataSetChanged();
                     lineChart.setVisibleXRangeMaximum(150);
