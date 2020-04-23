@@ -20,6 +20,9 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
     // Controls.
     private TextView textView_timer;
@@ -29,12 +32,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // Accelerometer.
     private SensorManager sensorManager;
     private Sensor accelerometer;
+    // Accelerometer data.
+    private int d;
+    private List<Float> accelX;
     // Line chart control.
     private Thread thread;
     private boolean plot;
     // Tells the line chart to start or stop plotting.
     // This is used in another thread.
     private volatile boolean start;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +53,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         lineChart = findViewById(R.id.linechart);
         button_start_stop = findViewById(R.id.button_start_stop);
 
+        d = 2;
+        accelX = new ArrayList<>();
         // By default, the app does not plot data.
         plot = false;
         start = false;
@@ -102,6 +111,37 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         thread.start();
     }
 
+    private int getWindowSize(final int d) {
+        return d + 2;
+    }
+
+    private boolean initialLimit(final int size, final int d) {
+        final int windowSize = getWindowSize(d);
+        boolean allow = false;
+
+        if (size >= windowSize) {
+            allow = true;
+        }
+
+        return allow;
+    }
+
+    private float windowFilter(final List<Float> data, final int d) {
+        final int windowSize = getWindowSize(d);
+        final int offset = data.size() - windowSize;
+        float result = 0f;
+
+        for (int j = offset; j < windowSize + offset; j++) {
+            if (j % windowSize == 0) {
+                continue;
+            }
+
+            result += (Math.abs(accelX.get(j) - accelX.get(j - 1))) / Float.valueOf(d);
+        }
+
+        return result;
+    }
+
     // Create a new line data set.
     private LineDataSet createDataSet(final String label, final int color) {
         LineDataSet set = new LineDataSet(null, label);
@@ -132,33 +172,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 // Try to get the data sets.
                 ILineDataSet dataSetX = lineData.getDataSetByIndex(0);
-                ILineDataSet dataSetY = lineData.getDataSetByIndex(1);
-                ILineDataSet dataSetZ = lineData.getDataSetByIndex(2);
+//                ILineDataSet dataSetY = lineData.getDataSetByIndex(1);
+//                ILineDataSet dataSetZ = lineData.getDataSetByIndex(2);
 
                 // If the line data sets do not exist, then create a new one.
                 if (dataSetX == null) {
                     dataSetX = createDataSet("X", Color.RED);
                     lineData.addDataSet(dataSetX);
                 }
-                if (dataSetY == null) {
-                    dataSetY = createDataSet("Y", Color.BLUE);
-                    lineData.addDataSet(dataSetY);
-                }
-                if (dataSetZ == null) {
-                    dataSetZ = createDataSet("Z", Color.GREEN);
-                    lineData.addDataSet(dataSetZ);
-                }
+//                if (dataSetY == null) {
+//                    dataSetY = createDataSet("Y", Color.BLUE);
+//                    lineData.addDataSet(dataSetY);
+//                }
+//                if (dataSetZ == null) {
+//                    dataSetZ = createDataSet("Z", Color.GREEN);
+//                    lineData.addDataSet(dataSetZ);
+//                }
+
+                accelX.add(event.values[0]);
 
                 // Added a new entry into the data set.
-                lineData.addEntry(new Entry(dataSetX.getEntryCount(), event.values[0]), 0);
-                lineData.addEntry(new Entry(dataSetY.getEntryCount(), event.values[1]), 1);
-                lineData.addEntry(new Entry(dataSetZ.getEntryCount(), event.values[2]), 2);
+//                lineData.addEntry(new Entry(dataSetX.getEntryCount(), event.values[0]), 0);
+//                lineData.addEntry(new Entry(dataSetY.getEntryCount(), event.values[1]), 1);
+//                lineData.addEntry(new Entry(dataSetZ.getEntryCount(), event.values[2]), 2);
 
                 // Update the line chart and move the new data into view.
-                lineData.notifyDataChanged();
-                lineChart.notifyDataSetChanged();
-                lineChart.setVisibleXRangeMaximum(150);
-                lineChart.moveViewToX(lineData.getEntryCount());
+                if (initialLimit(accelX.size(), d)) {
+                    lineData.addEntry(new Entry(dataSetX.getEntryCount(), windowFilter(accelX, d)), 0);
+                    lineData.notifyDataChanged();
+                    lineChart.notifyDataSetChanged();
+                    lineChart.setVisibleXRangeMaximum(150);
+                    lineChart.moveViewToX(lineData.getEntryCount());
+                }
 
                 // Stop plotting and wait until plotting is allowed.
                 plot = false;
