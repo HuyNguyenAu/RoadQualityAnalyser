@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private TextView textView_timer;
     private LineChart lineChart;
     private SeekBar seekBar_smoothing;
+    private SeekBar seekBar_windowSize;
     private Button button_start_stop;
 
     // Accelerometer.
@@ -36,7 +37,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor accelerometer;
     // Accelerometer data.
     private int d;
-    float smoothing;
+    private float smoothing;
     private List<AccelerometerData> rawAccelData;
     private List<AccelerometerData> filteredAccelData;
     // Line chart control.
@@ -56,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         textView_timer = findViewById(R.id.textView_timer);
         lineChart = findViewById(R.id.linechart);
         seekBar_smoothing = findViewById(R.id.seekBar_smoothing);
+        seekBar_windowSize = findViewById(R.id.seekBar_windowSize);
         button_start_stop = findViewById(R.id.button_start_stop);
 
         d = 2;
@@ -100,7 +102,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
 
                 smoothing = Float.valueOf(progress);
-                textView_timer.setText(String.valueOf(smoothing));
+                textView_timer.setText("S: " + String.valueOf(smoothing) + ", D: " + String.valueOf(d));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+        seekBar_windowSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (progress < 2) {
+                    progress = 2;
+                }
+
+                if (progress % 2 != 0) {
+                    progress = progress - 1;
+                }
+
+                d = progress;
+                textView_timer.setText("S: " + String.valueOf(smoothing) + ", D: " + String.valueOf(d));
             }
 
             @Override
@@ -135,30 +158,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
         thread.start();
+
+        textView_timer.setText("S: " + String.valueOf(smoothing) + ", D: " + String.valueOf(d));
     }
 
-    private int getWindowSize(final int d) {
+    // Calculate the number of elements to process from the window size d.
+    private int getNumberOfElements(final int d) {
         return d + 2;
     }
 
+    // Determine when the window filter can be applied based on the window size.
     private boolean initialLimit(final int size, final int d) {
-        final int windowSize = getWindowSize(d);
+        final int numberOfElements = getNumberOfElements(d);
         boolean allow = false;
 
-        if (size >= windowSize) {
+        if (size >= numberOfElements) {
             allow = true;
         }
 
         return allow;
     }
 
+    // Amplify the changes in acceleration larger.
     private float windowFilter(final List<AccelerometerData> data, final int d, final int index) {
-        final int windowSize = getWindowSize(d);
-        final int offset = data.size() - windowSize;
+        final int numberOfElements = getNumberOfElements(d);
+        final int offset = data.size() - numberOfElements;
         float result = 0f;
 
-        for (int j = offset; j < windowSize + offset; j++) {
-            if (j % windowSize == 0) {
+        for (int j = offset; j < numberOfElements + offset; j++) {
+            if (j % numberOfElements == 0) {
                 continue;
             }
 
@@ -182,6 +210,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return result;
     }
 
+    // A simple low pass filter.
     private float lowPassFilter(final float oldValue, final float newValue, final float smoothing,
                                 long delta) {
         return oldValue + (newValue - oldValue) / (smoothing / Float.valueOf(delta));
