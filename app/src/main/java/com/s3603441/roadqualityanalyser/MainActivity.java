@@ -9,6 +9,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
@@ -30,7 +31,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private LineChart lineChart;
     private SeekBar seekBar_smoothing;
     private SeekBar seekBar_windowSize;
+    private SeekBar seekBar_threshold;
     private Button button_start_stop;
+
+    // DEBUG
+    private TextView textView_smoothing;
+    private TextView textView_windowSize;
+    private TextView textView_threshold;
 
     // Accelerometer.
     private SensorManager sensorManager;
@@ -38,6 +45,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // Accelerometer data.
     private int d;
     private float smoothing;
+    private int threshold;
     private List<AccelerometerData> rawAccelData;
     private List<AccelerometerData> filteredAccelData;
     // Line chart control.
@@ -46,7 +54,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // Tells the line chart to start or stop plotting.
     // This is used in another thread.
     private volatile boolean start;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,7 +65,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         lineChart = findViewById(R.id.linechart);
         seekBar_smoothing = findViewById(R.id.seekBar_smoothing);
         seekBar_windowSize = findViewById(R.id.seekBar_windowSize);
+        seekBar_threshold = findViewById(R.id.seekBar_threshold);
         button_start_stop = findViewById(R.id.button_start_stop);
+        // DEBUG
+        textView_smoothing = findViewById(R.id.textView_smoothing);
+        textView_windowSize = findViewById(R.id.textView_windowSize);
+        textView_threshold = findViewById(R.id.textView_threshold);
 
         d = 2;
         smoothing = 1;
@@ -102,7 +114,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
 
                 smoothing = Float.valueOf(progress);
-                textView_timer.setText("S: " + String.valueOf(smoothing) + ", D: " + String.valueOf(d));
+                // DEBUG
+                textView_smoothing.setText("Smoothing: " + smoothing);
             }
 
             @Override
@@ -123,7 +136,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
 
                 d = progress;
-                textView_timer.setText("S: " + String.valueOf(smoothing) + ", D: " + String.valueOf(d));
+                // DEBUG
+                textView_windowSize.setText("Window Size: " + d);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+        seekBar_threshold.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (progress <= 0) {
+                    progress = 1;
+                }
+
+                threshold = progress;
+                // DEBUG
+                textView_threshold.setText("Threshold: " + threshold);
             }
 
             @Override
@@ -159,7 +191,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
         thread.start();
 
-        textView_timer.setText("S: " + String.valueOf(smoothing) + ", D: " + String.valueOf(d));
+        // DEBUG
+        textView_smoothing.setText("Smoothing: " + smoothing);
+        textView_windowSize.setText("Window Size: " + d);
+        textView_threshold.setText("Threshold: " + threshold);
+        textView_timer.setText("Noice!");
     }
 
     // Calculate the number of elements to process from the window size d.
@@ -181,29 +217,45 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Amplify the changes in acceleration larger.
     private float windowFilter(final List<AccelerometerData> data, final int d, final int index) {
+        // The number of data points to process.
         final int numberOfElements = getNumberOfElements(d);
+        // Calculate the position of the start of the window.
+        // This is where the first data point of the window is.
         final int offset = data.size() - numberOfElements;
+        // The window filtered value.
         float result = 0f;
 
+        // Start from the first data point of the window and loop to the final data point of the
+        // window to determine the window filtered value.
         for (int j = offset; j < numberOfElements + offset; j++) {
-            if (j % numberOfElements == 0) {
+            // Since the window filter depends on two data points, the current value and the previous
+            // value. That means we need to skip the first value.
+            if (j == offset) {
                 continue;
             }
 
+            // The current data point.
             float k = 0f;
+            // The previous data point.
             float k1 = 0f;
 
+            // X data point.
             if (index == 0) {
                 k = data.get(j).getX();
                 k1 = data.get(j - 1).getX();
-            } else  if (index == 1) {
+            }
+            // Y data point.
+            else  if (index == 1) {
                 k = data.get(j).getY();
                 k1 = data.get(j - 1).getY();
-            } else  if (index == 2) {
+            }
+            // Z data point.
+            else  if (index == 2) {
                 k = data.get(j).getZ();
                 k1 = data.get(j - 1).getZ();
             }
 
+            // Calculate the window filtered value.
             result += (Math.abs(k - k1)) / Float.valueOf(d);
         }
 
@@ -211,10 +263,55 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     // A simple low pass filter.
+    // Source: http://phrogz.net/js/framerate-independent-low-pass-filter.html
     private float lowPassFilter(final float oldValue, final float newValue, final float smoothing,
                                 long delta) {
         return oldValue + (newValue - oldValue) / (smoothing / Float.valueOf(delta));
     }
+
+    //TODO TESTING: Confirm if this works...
+    private float getDetectionValue(final List<AccelerometerData> data, final int d, final int index,
+                            final float threshold) {
+        final int numberOfElements = getNumberOfElements(d);
+        final int offset = data.size() - numberOfElements;
+
+        float maxValue = 0;
+        float minValue = 0;
+        float average = 0;
+
+        for (int j = offset; j < numberOfElements + offset; j++) {
+            // The current data point.
+            float k = 0f;
+
+            // X data point.
+            if (index == 0) {
+                k = data.get(j).getX();
+            }
+            // Y data point.
+            else  if (index == 1) {
+                k = data.get(j).getY();
+            }
+            // Z data point.
+            else  if (index == 2) {
+                k = data.get(j).getZ();
+            }
+
+            if (maxValue < k) {
+                maxValue = k;
+            }
+
+            if (minValue > k) {
+                minValue = k;
+            }
+
+            average += k;
+        }
+
+        average /= Float.valueOf(numberOfElements);
+
+        return ((maxValue - minValue) * threshold) + average;
+    }
+
 
     // Create a new line data set.
     private LineDataSet createDataSet(final String label, final int color) {
@@ -263,7 +360,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     lineData.addDataSet(dataSetZ);
                 }
 
-                rawAccelData.add(new AccelerometerData(event.values[0], event.values[1], event.values[2], System.currentTimeMillis()));
+                rawAccelData.add(new AccelerometerData(event.values[0], event.values[1],
+                        event.values[2], System.currentTimeMillis()));
 
                 // Low pass filter.
                 if (rawAccelData.size() > 1) {
@@ -275,24 +373,37 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         delta = 1;
                     }
 
-                    final float filteredX = lowPassFilter(oldValue.getX(), newValue.getX(), smoothing, delta);
-                    final float filteredY = lowPassFilter(oldValue.getY(), newValue.getY(), smoothing, delta);
-                    final float filteredZ = lowPassFilter(oldValue.getZ(), newValue.getZ(), smoothing, delta);
+                    final float filteredX = lowPassFilter(oldValue.getX(), newValue.getX(),
+                            smoothing, delta);
+                    final float filteredY = lowPassFilter(oldValue.getY(), newValue.getY(),
+                            smoothing, delta);
+                    final float filteredZ = lowPassFilter(oldValue.getZ(), newValue.getZ(),
+                            smoothing, delta);
 
-                    filteredAccelData.add(new AccelerometerData(filteredX, filteredY, filteredZ, System.currentTimeMillis()));
+                    filteredAccelData.add(new AccelerometerData(filteredX, filteredY, filteredZ,
+                            System.currentTimeMillis()));
                 }
-
-                // Added a new entry into the data set.
-//                lineData.addEntry(new Entry(dataSetX.getEntryCount(), event.values[0]), 0);
-//                lineData.addEntry(new Entry(dataSetY.getEntryCount(), event.values[1]), 1);
-//                lineData.addEntry(new Entry(dataSetZ.getEntryCount(), event.values[2]), 2);
 
                 // Update the line chart and move the new data into view.
                 if (initialLimit(filteredAccelData.size(), d)) {
-                    lineData.addEntry(new Entry(dataSetX.getEntryCount(), windowFilter(filteredAccelData, d, 0)), 0);
-                    lineData.addEntry(new Entry(dataSetY.getEntryCount(), windowFilter(filteredAccelData, d, 1)), 1);
-                    lineData.addEntry(new Entry(dataSetZ.getEntryCount(), windowFilter(filteredAccelData, d, 2)), 2);
+                    lineData.addEntry(new Entry(dataSetX.getEntryCount(),
+                            windowFilter(filteredAccelData, d, 0)), 0);
+                    lineData.addEntry(new Entry(dataSetY.getEntryCount(),
+                            windowFilter(filteredAccelData, d, 1)), 1);
+                    lineData.addEntry(new Entry(dataSetZ.getEntryCount(),
+                            windowFilter(filteredAccelData, d, 2)), 2);
                     lineData.notifyDataChanged();
+
+                    // Threshold testing.
+                    // DEBUG
+//                    textView_timer.setText(String.valueOf(getDetectionValue(filteredAccelData, d,
+//                            0, Float.valueOf(threshold) / 100)));
+                    if (getDetectionValue(filteredAccelData, d, 0,
+                            Float.valueOf(25) / 100) >= threshold) {
+                        // DEBUG
+                        textView_timer.setText("Warning!");
+                    }
+
                     lineChart.notifyDataSetChanged();
                     lineChart.setVisibleXRangeMaximum(150);
                     lineChart.moveViewToX(lineData.getEntryCount());
