@@ -2,115 +2,28 @@
 <TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:stretchColumns="0"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:stretchColumns="*"
+    android:shrinkColumns="*"
     tools:context=".MainActivity">
-    <TableRow>
-        <TextView
-            android:id="@+id/textView_timer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="8dp"
-            android:text="HH:MM:SS"
-            android:textAlignment="center"
-            android:textSize="24sp"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-    </TableRow>
 
     <TableRow android:layout_weight="1">
-
-        <com.github.mikephil.charting.charts.LineChart
-            android:id="@+id/linechart"
+        <fragment
+            android:id="@+id/nav_host_fragment"
+            android:name="androidx.navigation.fragment.NavHostFragment"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp" />
+            app:defaultNavHost="true"
+            app:navGraph="@navigation/mobile_navigation" />
     </TableRow>
 
     <TableRow>
-        <LinearLayout android:orientation="vertical">
-            <TextView
-                android:id="@+id/textView_smoothing"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:text="Smoothing:"
-                android:textAlignment="center"
-                app:layout_constraintLeft_toLeftOf="parent"
-                app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-            <SeekBar
-                android:id="@+id/seekBar_smoothing"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:min="1"
-                android:max="10"
-                android:progress="1"/>
-        </LinearLayout>
-    </TableRow>
-
-    <TableRow>
-        <LinearLayout android:orientation="vertical">
-            <TextView
-                android:id="@+id/textView_windowSize"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:text="Window Size:"
-                android:textAlignment="center"
-                app:layout_constraintLeft_toLeftOf="parent"
-                app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-            <SeekBar
-                android:id="@+id/seekBar_windowSize"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:min="2"
-                android:max="20"
-                android:progress="1"/>
-        </LinearLayout>
-    </TableRow>
-
-    <TableRow>
-        <LinearLayout android:orientation="vertical">
-            <TextView
-                android:id="@+id/textView_threshold"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:text="Threshold:"
-                android:textAlignment="center"
-                app:layout_constraintLeft_toLeftOf="parent"
-                app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-            <SeekBar
-                android:id="@+id/seekBar_threshold"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:min="1"
-                android:max="1000"
-                android:progress="1"/>
-        </LinearLayout>
-    </TableRow>
-
-    <TableRow>
-        <Button
-            android:id="@+id/button_start_stop"
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/nav_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="8dp"
-            android:text="Start"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            android:background="?android:attr/windowBackground"
+            app:menu="@menu/bottom_nav_menu" />
     </TableRow>
 </TableLayout>

@@ -1,2 +1,2 @@
-rootProject.name='Road Quality Analyser'
+rootProject.name='RoadQualityAnalyser'
 include ':app'
