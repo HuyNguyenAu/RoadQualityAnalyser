@@ -8,7 +8,6 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -69,6 +68,7 @@ public class HomeFragment extends Fragment implements SensorEventListener {
 
         homeViewModel.setRawData(new ArrayList<Accelerometer>());
         homeViewModel.setFilteredData(new ArrayList<Accelerometer>());
+        homeViewModel.setWindowFilteredData(new ArrayList<Accelerometer>());
         homeViewModel.setThresholdData(new ArrayList<Float>());
 
         // Setup line chart visuals and interactions.
@@ -139,16 +139,17 @@ public class HomeFragment extends Fragment implements SensorEventListener {
     }
 
     public void buttonStartStopClicked(final View root) {
-       if (!start) {
-           // Load the smoothing factor, window size, and threshold in a separate thread.
-           final StartTask startTask = new StartTask();
-           startTask.execute(root.getContext());
-       } else {
+        if (!start) {
+            // Load the smoothing factor, window size, and threshold in a separate thread.
+            final StartTask startTask = new StartTask();
+            startTask.execute(root.getContext());
+        } else {
             final Snackbar savingSnackbar = Snackbar.make(root, "Saving data...", Snackbar.LENGTH_INDEFINITE);
             final StopTask stopTask = new StopTask(root, root.getContext(), savingSnackbar);
-           savingSnackbar.show();
-            stopTask.execute(homeViewModel.getFilteredData());
-       }
+            savingSnackbar.show();
+            start = false;
+            stopTask.execute(homeViewModel.getWindowFilteredData());
+        }
     }
 
     @Override
@@ -185,7 +186,6 @@ public class HomeFragment extends Fragment implements SensorEventListener {
                 rawData.setX(event.values[0]);
                 rawData.setY(event.values[1]);
                 rawData.setZ(event.values[2]);
-                rawData.setTimeCreated(System.currentTimeMillis());
                 homeViewModel.getRawData().add(rawData);
 
                 // Low pass filter.
@@ -211,23 +211,30 @@ public class HomeFragment extends Fragment implements SensorEventListener {
                     filteredData.setX(filteredX);
                     filteredData.setY(filteredY);
                     filteredData.setZ(filteredZ);
-                    filteredData.setTimeCreated(System.currentTimeMillis());
-                    filteredData.setDatetime(homeViewModel.getDateTimeStartCreated());
                     homeViewModel.getFilteredData().add(filteredData);
                 }
 
                 // Update the line chart and move the new data into view.
                 if (homeViewModel.initialLimit(homeViewModel.getFilteredData().size(), homeViewModel.getWindowSize())) {
+                    final Accelerometer windowFiltedData = new Accelerometer();
+                    windowFiltedData.setTimeCreated(System.currentTimeMillis());
+                    windowFiltedData.setDatetime(homeViewModel.getDateTimeStartCreated());
+                    windowFiltedData.setX(homeViewModel.windowFilter(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 0));
+                    windowFiltedData.setY(homeViewModel.windowFilter(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 1));
+                    windowFiltedData.setZ(homeViewModel.windowFilter(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 2));
+
+                    homeViewModel.getWindowFilteredData().add(windowFiltedData);
+
                     lineData.addEntry(new Entry(dataSetX.getEntryCount(),
-                            homeViewModel.windowFilter(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 0)), 0);
+                            windowFiltedData.getX()), 0);
                     lineData.addEntry(new Entry(dataSetY.getEntryCount(),
-                            homeViewModel.windowFilter(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 1)), 1);
+                            windowFiltedData.getY()), 1);
                     lineData.addEntry(new Entry(dataSetZ.getEntryCount(),
-                            homeViewModel.windowFilter(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 2)), 2);
+                            windowFiltedData.getZ()), 2);
                     lineData.notifyDataChanged();
 
                     // Threshold testing.
-                    if (homeViewModel.getDetectionValue(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 1,
+                    if (homeViewModel.getDetectionValue(homeViewModel.getWindowFilteredData(), homeViewModel.getWindowSize(), 1,
                             homeViewModel.getSensitivity() / 100.0f) >= homeViewModel.getThreshold()) {
                         Snackbar.make(getView(), "Danger!", Snackbar.LENGTH_SHORT).show();
                     }
@@ -338,9 +345,9 @@ public class HomeFragment extends Fragment implements SensorEventListener {
                     homeViewModel.setSmoothing(value);
                 } else if (name.equalsIgnoreCase("window_size")) {
                     homeViewModel.setWindowSize(value);
-                }  else if (name.equalsIgnoreCase("threshold")) {
+                } else if (name.equalsIgnoreCase("threshold")) {
                     homeViewModel.setThreshold(value);
-                }  else if (name.equalsIgnoreCase("sensitivity")) {
+                } else if (name.equalsIgnoreCase("sensitivity")) {
                     homeViewModel.setSensitivity(value);
                 }
             }
@@ -378,13 +385,13 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         protected Void doInBackground(List<Accelerometer>... lists) {
             final AppDatabase appDatabase = Room.databaseBuilder(context,
                     AppDatabase.class, "data").build();
-            final List<Accelerometer> currentData  = appDatabase.accelerometerDao().getAll();
+            final List<Accelerometer> currentData = appDatabase.accelerometerDao().getAll();
             final List<Accelerometer> newData = lists[0];
             int initialIndex = 0;
 
-           if (currentData.size() > 0) {
-               initialIndex = currentData.size();
-           }
+            if (currentData.size() > 0) {
+                initialIndex = currentData.size();
+            }
 
             for (int i = 0; i < newData.size(); i++) {
                 newData.get(i).setId(i + initialIndex);
@@ -401,8 +408,6 @@ public class HomeFragment extends Fragment implements SensorEventListener {
             savingSnackbar.dismiss();
             Snackbar.make(root, "Data saved!", Snackbar.LENGTH_SHORT).show();
 
-            // Toggle start to be true or false.
-            start = false;
             // Set the start_stop button text accordingly.
             homeViewModel.getButtonStartStop().setText("Start");
             super.onPostExecute(aVoid);

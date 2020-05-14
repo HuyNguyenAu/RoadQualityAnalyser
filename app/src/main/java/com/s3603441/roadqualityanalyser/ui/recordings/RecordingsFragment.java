@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +24,7 @@ import com.s3603441.roadqualityanalyser.db.AppDatabase;
 import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 import com.s3603441.roadqualityanalyser.ui.analytics.Analytics;
 
+import java.io.Serializable;
 import java.util.List;
 
 public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickListener{
@@ -56,17 +58,15 @@ public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickL
         recordingsViewModel.getRecyclerView().addItemDecoration(new DividerItemDecoration(root.getContext().getApplicationContext(), LinearLayout.VERTICAL));
     }
 
-    public void showAnalytics(final Context context) {
+    public void showAnalytics(final Context context, final String dateTime) {
         final Intent intent = new Intent(context, Analytics.class);
+        intent.putExtra("dateTime", dateTime);
         startActivity(intent);
     }
 
     @Override
     public void onItemClick(final View root, final int position) {
-        final Snackbar loadingSnackbar = Snackbar.make(root, "Loading data...", Snackbar.LENGTH_INDEFINITE);
-        final GetDataTask getDataTask = new GetDataTask(root, recordingsViewModel.getMyAdapter().getItem(position), loadingSnackbar);
-        loadingSnackbar.show();
-        getDataTask.execute(root.getContext().getApplicationContext());
+        showAnalytics(root.getContext().getApplicationContext(), recordingsViewModel.getMyAdapter().getItem(position));
     }
 
     private class GetDateTimesTask extends AsyncTask <Context, Void, List<String>> {
@@ -88,32 +88,6 @@ public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickL
         protected void onPostExecute(final List<String> result) {
             recordingsViewModel.setItems(result);
             initRecyclerView(root);
-        }
-    }
-
-    private class GetDataTask extends AsyncTask <Context, Void, List<Accelerometer>> {
-        private View root;
-        private String dateTime;
-        private Snackbar loadingSnackbar;
-
-        public GetDataTask(final View root, final String dateTime, final Snackbar loadingSnackbar) {
-            this.root = root;
-            this.dateTime = dateTime;
-            this.loadingSnackbar = loadingSnackbar;
-        }
-
-        @Override
-        protected List<Accelerometer> doInBackground(Context... contexts) {
-            final AppDatabase appDatabase = Room.databaseBuilder(contexts[0],
-                    AppDatabase.class, "data").build();
-
-            return appDatabase.accelerometerDao().getData(dateTime);
-        }
-
-        @Override
-        protected void onPostExecute(final List<Accelerometer> data) {
-            loadingSnackbar.dismiss();
-            showAnalytics(root.getContext().getApplicationContext());
         }
     }
 }

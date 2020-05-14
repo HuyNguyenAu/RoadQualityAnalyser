@@ -32,6 +32,7 @@ public class HomeViewModel extends ViewModel {
     private float sensitivity;
     private List<Accelerometer> rawData;
     private List<Accelerometer> filteredData;
+    private List<Accelerometer> windowFilteredData;
     private List<Float> thresholdData;
 
     // Line chart control.
@@ -121,6 +122,10 @@ public class HomeViewModel extends ViewModel {
         float maxValue = 0;
         float minValue = 0;
         float average = 0;
+
+        if (data.size() <= numberOfElements) {
+            return -1.0f;
+        }
 
         for (int j = offset; j < numberOfElements + offset; j++) {
             // The current data point.
@@ -263,6 +268,14 @@ public class HomeViewModel extends ViewModel {
 
     public void setFilteredData(final List<Accelerometer> filteredData) {
         this.filteredData = filteredData;
+    }
+
+    public List<Accelerometer> getWindowFilteredData() {
+        return this.windowFilteredData;
+    }
+
+    public void setWindowFilteredData(final List<Accelerometer> windowFilteredData) {
+        this.windowFilteredData = windowFilteredData;
     }
 
     public List<Float> getThresholdData() {
