@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:stretchColumns="*"
     android:shrinkColumns="*"
-    tools:context=".ui.analytics.HomeFragment">
+    tools:context=".ui.recordings.HomeFragment">
 
     <TableRow>
 

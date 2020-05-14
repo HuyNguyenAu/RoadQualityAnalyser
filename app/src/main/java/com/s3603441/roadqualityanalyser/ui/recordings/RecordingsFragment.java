@@ -1,6 +1,7 @@
-package com.s3603441.roadqualityanalyser.ui.analytics;
+package com.s3603441.roadqualityanalyser.ui.recordings;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -20,17 +21,18 @@ import com.google.android.material.snackbar.Snackbar;
 import com.s3603441.roadqualityanalyser.R;
 import com.s3603441.roadqualityanalyser.db.AppDatabase;
 import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
+import com.s3603441.roadqualityanalyser.ui.analytics.Analytics;
 
 import java.util.List;
 
-public class AnalyticsFragment extends Fragment implements MyAdapter.ItemClickListener{
+public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickListener{
 
-    private AnalyticsViewModel analyticsViewModel;
+    private RecordingsViewModel recordingsViewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        analyticsViewModel =
-                ViewModelProviders.of(this).get(AnalyticsViewModel.class);
+        recordingsViewModel =
+                ViewModelProviders.of(this).get(RecordingsViewModel.class);
         final View root = inflater.inflate(R.layout.fragment_recordings, container, false);
 
         initUI(root);
@@ -44,20 +46,25 @@ public class AnalyticsFragment extends Fragment implements MyAdapter.ItemClickLi
     }
 
     public void initRecyclerView(final View root) {
-        analyticsViewModel.setRecyclerView((RecyclerView) root.findViewById(R.id.recyclerview));
-        analyticsViewModel.getRecyclerView().setHasFixedSize(true);
-        analyticsViewModel.getRecyclerView().setLayoutManager(new LinearLayoutManager(root.getContext()));
-        analyticsViewModel.setMyAdapter(new MyAdapter(root.getContext(), analyticsViewModel.getItems()));
-        analyticsViewModel.getMyAdapter().setClickListener(this);
-        analyticsViewModel.getRecyclerView().setAdapter(analyticsViewModel.getMyAdapter());
+        recordingsViewModel.setRecyclerView((RecyclerView) root.findViewById(R.id.recyclerview));
+        recordingsViewModel.getRecyclerView().setHasFixedSize(true);
+        recordingsViewModel.getRecyclerView().setLayoutManager(new LinearLayoutManager(root.getContext()));
+        recordingsViewModel.setMyAdapter(new MyAdapter(root.getContext(), recordingsViewModel.getItems()));
+        recordingsViewModel.getMyAdapter().setClickListener(this);
+        recordingsViewModel.getRecyclerView().setAdapter(recordingsViewModel.getMyAdapter());
         // Source: https://stackoverflow.com/questions/28713231/android-add-divider-between-items-in-recyclerview
-        analyticsViewModel.getRecyclerView().addItemDecoration(new DividerItemDecoration(root.getContext().getApplicationContext(), LinearLayout.VERTICAL));
+        recordingsViewModel.getRecyclerView().addItemDecoration(new DividerItemDecoration(root.getContext().getApplicationContext(), LinearLayout.VERTICAL));
+    }
+
+    public void showAnalytics(final Context context) {
+        final Intent intent = new Intent(context, Analytics.class);
+        startActivity(intent);
     }
 
     @Override
     public void onItemClick(final View root, final int position) {
         final Snackbar loadingSnackbar = Snackbar.make(root, "Loading data...", Snackbar.LENGTH_INDEFINITE);
-        final GetDataTask getDataTask = new GetDataTask(root, analyticsViewModel.getMyAdapter().getItem(position), loadingSnackbar);
+        final GetDataTask getDataTask = new GetDataTask(root, recordingsViewModel.getMyAdapter().getItem(position), loadingSnackbar);
         loadingSnackbar.show();
         getDataTask.execute(root.getContext().getApplicationContext());
     }
@@ -79,7 +86,7 @@ public class AnalyticsFragment extends Fragment implements MyAdapter.ItemClickLi
 
         @Override
         protected void onPostExecute(final List<String> result) {
-            analyticsViewModel.setItems(result);
+            recordingsViewModel.setItems(result);
             initRecyclerView(root);
         }
     }
@@ -106,7 +113,7 @@ public class AnalyticsFragment extends Fragment implements MyAdapter.ItemClickLi
         @Override
         protected void onPostExecute(final List<Accelerometer> data) {
             loadingSnackbar.dismiss();
-
+            showAnalytics(root.getContext().getApplicationContext());
         }
     }
 }

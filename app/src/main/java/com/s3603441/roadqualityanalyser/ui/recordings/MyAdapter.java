@@ -1,4 +1,4 @@
-package com.s3603441.roadqualityanalyser.ui.analytics;
+package com.s3603441.roadqualityanalyser.ui.recordings;
 
 import android.content.Context;
 import android.view.LayoutInflater;

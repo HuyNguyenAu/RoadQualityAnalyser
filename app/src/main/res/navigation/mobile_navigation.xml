@@ -11,9 +11,9 @@
         tools:layout="@layout/fragment_home" />
 
     <fragment
-        android:id="@+id/navigation_analytics"
-        android:name="com.s3603441.roadqualityanalyser.ui.analytics.AnalyticsFragment"
-        tools:layout="@layout/fragment_analytics" />
+        android:id="@+id/navigation_recordings"
+        android:name="com.s3603441.roadqualityanalyser.ui.recordings.RecordingsFragment"
+        tools:layout="@layout/fragment_recordings" />
 
     <fragment
         android:id="@+id/navigation_settings"
