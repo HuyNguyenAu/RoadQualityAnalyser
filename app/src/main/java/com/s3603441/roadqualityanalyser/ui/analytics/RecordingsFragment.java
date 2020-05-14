@@ -3,19 +3,13 @@ package com.s3603441.roadqualityanalyser.ui.analytics;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -27,7 +21,6 @@ import com.s3603441.roadqualityanalyser.R;
 import com.s3603441.roadqualityanalyser.db.AppDatabase;
 import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class AnalyticsFragment extends Fragment implements MyAdapter.ItemClickListener{
@@ -38,7 +31,7 @@ public class AnalyticsFragment extends Fragment implements MyAdapter.ItemClickLi
                              ViewGroup container, Bundle savedInstanceState) {
         analyticsViewModel =
                 ViewModelProviders.of(this).get(AnalyticsViewModel.class);
-        final View root = inflater.inflate(R.layout.fragment_analytics, container, false);
+        final View root = inflater.inflate(R.layout.fragment_recordings, container, false);
 
         initUI(root);
 
@@ -63,9 +56,10 @@ public class AnalyticsFragment extends Fragment implements MyAdapter.ItemClickLi
 
     @Override
     public void onItemClick(final View root, final int position) {
-        final Snackbar loadingSnackbar = Snackbar.make(root, "Loading data...", Snackbar.LENGTH_SHORT);
+        final Snackbar loadingSnackbar = Snackbar.make(root, "Loading data...", Snackbar.LENGTH_INDEFINITE);
         final GetDataTask getDataTask = new GetDataTask(root, analyticsViewModel.getMyAdapter().getItem(position), loadingSnackbar);
         loadingSnackbar.show();
+        getDataTask.execute(root.getContext().getApplicationContext());
     }
 
     private class GetDateTimesTask extends AsyncTask <Context, Void, List<String>> {
@@ -113,9 +107,6 @@ public class AnalyticsFragment extends Fragment implements MyAdapter.ItemClickLi
         protected void onPostExecute(final List<Accelerometer> data) {
             loadingSnackbar.dismiss();
 
-            for (final Accelerometer accelerometer : data) {
-                Log.d("onPostExecute", "onPostExecute: " + accelerometer.getTimeCreated());
-            }
         }
     }
 }
