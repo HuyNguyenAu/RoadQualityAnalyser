@@ -8,6 +8,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,15 +25,15 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.android.material.snackbar.Snackbar;
-import com.s3603441.roadqualityanalyser.AccelerometerData;
 import com.s3603441.roadqualityanalyser.R;
 import com.s3603441.roadqualityanalyser.db.AppDatabase;
+import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 import com.s3603441.roadqualityanalyser.db.settings.Setting;
 
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class HomeFragment extends Fragment implements SensorEventListener {
@@ -42,17 +43,16 @@ public class HomeFragment extends Fragment implements SensorEventListener {
     // Tells the line chart to start or stop plotting.
     // This is used in another thread.
     private volatile boolean start;
-    private volatile boolean done;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         homeViewModel =
                 ViewModelProviders.of(this).get(HomeViewModel.class);
-       final View root = inflater.inflate(R.layout.fragment_home, container, false);
+        final View root = inflater.inflate(R.layout.fragment_home, container, false);
 
         initUI(root);
         initPlotThread();
-        initSettings(root.getContext().getApplicationContext());
+        initSettings(root, root.getContext().getApplicationContext());
 
         return root;
     }
@@ -67,8 +67,8 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         homeViewModel.setSmoothing(2);
         homeViewModel.setThreshold(600);
 
-        homeViewModel.setRawData(new ArrayList<AccelerometerData>());
-        homeViewModel.setFilteredData(new ArrayList<AccelerometerData>());
+        homeViewModel.setRawData(new ArrayList<Accelerometer>());
+        homeViewModel.setFilteredData(new ArrayList<Accelerometer>());
         homeViewModel.setThresholdData(new ArrayList<Float>());
 
         // Setup line chart visuals and interactions.
@@ -95,7 +95,7 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         homeViewModel.getButtonStartStop().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                buttonStartStopClicked(root.getContext());
+                buttonStartStopClicked(root);
             }
         });
     }
@@ -133,90 +133,22 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         homeViewModel.getThread().start();
     }
 
-    public void initSettings(final Context context) {
-        AsyncTask.execute(new Runnable() {
-            @Override
-            public void run() {
-                final AppDatabase appDatabase = Room.databaseBuilder(context,
-                        AppDatabase.class, "data").build();
-
-                insertSetting("smoothing", 2, appDatabase);
-                insertSetting("window_size", 2, appDatabase);
-                insertSetting("threshold", 600, appDatabase);
-                insertSetting("sensitivity", 25, appDatabase);
-
-                appDatabase.close();
-            }
-        });
+    public void initSettings(final View root, final Context context) {
+        final InitSettingsTask initSettingsTask = new InitSettingsTask(root);
+        initSettingsTask.execute(context);
     }
 
-    public void insertSetting(final String name, final int value,
-                            final AppDatabase appDatabase) {
-        final boolean exists = appDatabase.settingDao().getSetting(name) != null;
-        final int count =  appDatabase.settingDao().getAll().size();
-
-        if (exists) {
-            return;
-        }
-
-        Setting setting = new Setting();
-        setting.setId(count);
-        setting.setSetting(name);
-        setting.setValue(value);
-
-        appDatabase.settingDao().addSetting(setting);
-    }
-
-    public void buttonStartStopClicked(final Context context) {
-        // Load the smoothing factor, window size, and threshold in a separate thread.
-        final Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                final AppDatabase appDatabase = Room.databaseBuilder(context,
-                        AppDatabase.class, "data").build();
-
-                done = false;
-
-                // Set the smoothing factor, window size, and threshold from saved settings.
-                homeViewModel.setSmoothing(
-                        appDatabase.settingDao().getSetting("smoothing").getValue());
-                homeViewModel.setWindowSize(
-                        appDatabase.settingDao().getSetting("window_size").getValue());
-                homeViewModel.setThreshold(
-                        appDatabase.settingDao().getSetting("threshold").getValue());
-                homeViewModel.setSensitivity(
-                        appDatabase.settingDao().getSetting("sensitivity").getValue());
-
-                appDatabase.close();
-                done = true;
-            }
-        };
-
-        // Only load the settings when the user starts the recording.
+    public void buttonStartStopClicked(final View root) {
        if (!start) {
-           synchronized (task) {
-               AsyncTask.execute(task);
-           }
-
-           homeViewModel.getRawData().clear();
-           homeViewModel.getFilteredData().clear();
-           homeViewModel.getThresholdData().clear();
-           homeViewModel.getLineChart().clear();
-
-           // https://stackoverflow.com/questions/13515168/android-time-in-iso-8601
-           SimpleDateFormat currentDateTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH);
-           homeViewModel.setDateTimeStart(currentDateTime.format(new Date()));
+           // Load the smoothing factor, window size, and threshold in a separate thread.
+           final StartTask startTask = new StartTask();
+           startTask.execute(root.getContext());
+       } else {
+            final Snackbar savingSnackbar = Snackbar.make(root, "Saving data...", Snackbar.LENGTH_INDEFINITE);
+            final StopTask stopTask = new StopTask(root, root.getContext(), savingSnackbar);
+           savingSnackbar.show();
+            stopTask.execute(homeViewModel.getFilteredData());
        }
-
-       // Wait until the task is done.
-        while (!done) {
-        }
-
-        // Toggle start to be true or false.
-        start = start ? false : true;
-
-        // Set the start_stop button text accordingly.
-        homeViewModel.getButtonStartStop().setText(start ? "Stop" : "Start");
     }
 
     @Override
@@ -249,14 +181,18 @@ public class HomeFragment extends Fragment implements SensorEventListener {
                     lineData.addDataSet(dataSetZ);
                 }
 
-                homeViewModel.getRawData().add(new AccelerometerData(event.values[0], event.values[1],
-                        event.values[2], System.currentTimeMillis()));
+                Accelerometer rawData = new Accelerometer();
+                rawData.setX(event.values[0]);
+                rawData.setY(event.values[1]);
+                rawData.setZ(event.values[2]);
+                rawData.setTimeCreated(System.currentTimeMillis());
+                homeViewModel.getRawData().add(rawData);
 
                 // Low pass filter.
                 if (homeViewModel.getRawData().size() > 1) {
-                    final AccelerometerData oldValue = homeViewModel.getRawData()
+                    final Accelerometer oldValue = homeViewModel.getRawData()
                             .get(homeViewModel.getRawData().size() - 2);
-                    final AccelerometerData newValue = homeViewModel.getRawData()
+                    final Accelerometer newValue = homeViewModel.getRawData()
                             .get(homeViewModel.getRawData().size() - 1);
                     long delta = newValue.getTimeCreated() - oldValue.getTimeCreated();
 
@@ -271,8 +207,13 @@ public class HomeFragment extends Fragment implements SensorEventListener {
                     final float filteredZ = homeViewModel.lowPassFilter(oldValue.getZ(), newValue.getZ(),
                             homeViewModel.getSmoothing(), delta);
 
-                    homeViewModel.getFilteredData().add(new AccelerometerData(filteredX, filteredY, filteredZ,
-                            System.currentTimeMillis()));
+                    Accelerometer filteredData = new Accelerometer();
+                    filteredData.setX(filteredX);
+                    filteredData.setY(filteredY);
+                    filteredData.setZ(filteredZ);
+                    filteredData.setTimeCreated(System.currentTimeMillis());
+                    filteredData.setDatetime(homeViewModel.getDateTimeStartCreated());
+                    homeViewModel.getFilteredData().add(filteredData);
                 }
 
                 // Update the line chart and move the new data into view.
@@ -286,7 +227,7 @@ public class HomeFragment extends Fragment implements SensorEventListener {
                     lineData.notifyDataChanged();
 
                     // Threshold testing.
-                    if (homeViewModel.getDetectionValue(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 0,
+                    if (homeViewModel.getDetectionValue(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 1,
                             homeViewModel.getSensitivity() / 100.0f) >= homeViewModel.getThreshold()) {
                         Snackbar.make(getView(), "Danger!", Snackbar.LENGTH_SHORT).show();
                     }
@@ -331,5 +272,140 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         // Mark the thread for garbage collection.
         homeViewModel.getThread().interrupt();
         super.onDetach();
+    }
+
+    private class InitSettingsTask extends AsyncTask<Context, Void, Void> {
+        private View root;
+
+        public InitSettingsTask(final View root) {
+            this.root = root;
+        }
+
+        @Override
+        protected Void doInBackground(Context... contexts) {
+            final AppDatabase appDatabase = Room.databaseBuilder(contexts[0],
+                    AppDatabase.class, "settings").build();
+
+            List<Setting> settings = new ArrayList<>();
+            settings.add(new Setting("smoothing", 2));
+            settings.add(new Setting("window_size", 2));
+            settings.add(new Setting("threshold", 600));
+            settings.add(new Setting("sensitivity", 100));
+
+            initSettings(settings, appDatabase);
+            appDatabase.close();
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+        }
+
+        public void initSettings(final List<Setting> settings, final AppDatabase appDatabase) {
+            for (int i = 0; i < settings.size(); i++) {
+                Setting setting = settings.get(i);
+                final Setting oldSetting = appDatabase.settingDao().getSetting(setting.getName());
+
+                if (oldSetting == null) {
+                    setting.setId(i);
+                    appDatabase.settingDao().addSetting(setting);
+                }
+            }
+        }
+    }
+
+    private class StartTask extends AsyncTask<Context, Void, List<Setting>> {
+        @Override
+        protected List<Setting> doInBackground(Context... contexts) {
+            final AppDatabase appDatabase = Room.databaseBuilder(contexts[0],
+                    AppDatabase.class, "settings").build();
+            final List<Setting> settings = appDatabase.settingDao().getAll();
+            appDatabase.close();
+
+            return settings;
+        }
+
+        @Override
+        protected void onPostExecute(final List<Setting> settings) {
+            for (final Setting setting : settings) {
+                final String name = setting.getName();
+                final int value = setting.getValue();
+
+                // Set the smoothing factor, window size, and threshold from saved settings.
+                if (name.equalsIgnoreCase("smoothing")) {
+                    homeViewModel.setSmoothing(value);
+                } else if (name.equalsIgnoreCase("window_size")) {
+                    homeViewModel.setWindowSize(value);
+                }  else if (name.equalsIgnoreCase("threshold")) {
+                    homeViewModel.setThreshold(value);
+                }  else if (name.equalsIgnoreCase("sensitivity")) {
+                    homeViewModel.setSensitivity(value);
+                }
+            }
+
+            homeViewModel.getRawData().clear();
+            homeViewModel.getFilteredData().clear();
+            homeViewModel.getThresholdData().clear();
+            homeViewModel.getLineChart().clear();
+
+            // https://stackoverflow.com/questions/13515168/android-time-in-iso-8601
+            SimpleDateFormat currentDateTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH);
+            homeViewModel.setDateTimeStartCreated(currentDateTime.format(new Date()));
+
+            // Toggle start to be true or false.
+            start = true;
+            // Set the start_stop button text accordingly.
+            homeViewModel.getButtonStartStop().setText("Stop");
+
+            super.onPostExecute(settings);
+        }
+    }
+
+    private class StopTask extends AsyncTask<List<Accelerometer>, Void, Void> {
+        private View root;
+        private Context context;
+        private Snackbar savingSnackbar;
+
+        public StopTask(final View root, final Context context, final Snackbar savingSnackbar) {
+            this.root = root;
+            this.context = context;
+            this.savingSnackbar = savingSnackbar;
+        }
+
+        @Override
+        protected Void doInBackground(List<Accelerometer>... lists) {
+            final AppDatabase appDatabase = Room.databaseBuilder(context,
+                    AppDatabase.class, "data").build();
+            final List<Accelerometer> currentData  = appDatabase.accelerometerDao().getAll();
+            final List<Accelerometer> newData = lists[0];
+            int initialIndex = 0;
+
+           if (currentData.size() > 0) {
+               initialIndex = currentData.size();
+           }
+
+            for (int i = 0; i < newData.size(); i++) {
+                newData.get(i).setId(i + initialIndex);
+                appDatabase.accelerometerDao().addData(newData.get(i));
+            }
+
+            appDatabase.close();
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            savingSnackbar.dismiss();
+            Snackbar.make(root, "Data saved!", Snackbar.LENGTH_SHORT).show();
+
+            // Toggle start to be true or false.
+            start = false;
+            // Set the start_stop button text accordingly.
+            homeViewModel.getButtonStartStop().setText("Start");
+            super.onPostExecute(aVoid);
+        }
     }
 }

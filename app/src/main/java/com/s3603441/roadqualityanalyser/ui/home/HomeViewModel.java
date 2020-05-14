@@ -2,9 +2,7 @@ package com.s3603441.roadqualityanalyser.ui.home;
 
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
-import android.util.Log;
 import android.widget.Button;
-import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.lifecycle.ViewModel;
@@ -12,9 +10,8 @@ import androidx.lifecycle.ViewModel;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.LineDataSet;
-import com.s3603441.roadqualityanalyser.AccelerometerData;
+import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class HomeViewModel extends ViewModel {
@@ -28,13 +25,13 @@ public class HomeViewModel extends ViewModel {
     private Sensor accelerometer;
 
     // Accelerometer data.
-    private String dateTimeStart;
+    private String dateTimeCreated;
     private int windowSize;
     private float smoothing;
     private int threshold;
     private float sensitivity;
-    private List<AccelerometerData> rawData;
-    private List<AccelerometerData> filteredData;
+    private List<Accelerometer> rawData;
+    private List<Accelerometer> filteredData;
     private List<Float> thresholdData;
 
     // Line chart control.
@@ -62,7 +59,7 @@ public class HomeViewModel extends ViewModel {
     }
 
     // Amplify the changes in acceleration larger.
-    public float windowFilter(final List<AccelerometerData> data, final int windowSize, final int index) {
+    public float windowFilter(final List<Accelerometer> data, final int windowSize, final int index) {
         // The number of data points to process.
         final int numberOfElements = getNumberOfElements(windowSize);
         // Calculate the position of the start of the window.
@@ -116,7 +113,7 @@ public class HomeViewModel extends ViewModel {
     }
 
     // TODO
-    public float getDetectionValue(final List<AccelerometerData> data, final int d, final int index,
+    public float getDetectionValue(final List<Accelerometer> data, final int d, final int index,
                                    final float threshold) {
         final int numberOfElements = getNumberOfElements(d);
         final int offset = data.size() - numberOfElements;
@@ -212,12 +209,12 @@ public class HomeViewModel extends ViewModel {
         this.accelerometer = accelerometer;
     }
 
-    public String getDateTimeStart() {
-        return this.dateTimeStart;
+    public String getDateTimeStartCreated() {
+        return this.dateTimeCreated;
     }
 
-    public void setDateTimeStart(final String dateTimeStart) {
-        this.dateTimeStart = dateTimeStart;
+    public void setDateTimeStartCreated(final String dateTimeCreated) {
+        this.dateTimeCreated = dateTimeCreated;
     }
 
     public int getWindowSize() {
@@ -252,19 +249,19 @@ public class HomeViewModel extends ViewModel {
         this.sensitivity = sensitivity;
     }
 
-    public List<AccelerometerData> getRawData() {
+    public List<Accelerometer> getRawData() {
         return this.rawData;
     }
 
-    public void setRawData(final List<AccelerometerData> rawData) {
+    public void setRawData(final List<Accelerometer> rawData) {
         this.rawData = rawData;
     }
 
-    public List<AccelerometerData> getFilteredData() {
+    public List<Accelerometer> getFilteredData() {
         return this.filteredData;
     }
 
-    public void setFilteredData(final List<AccelerometerData> filteredData) {
+    public void setFilteredData(final List<Accelerometer> filteredData) {
         this.filteredData = filteredData;
     }
 

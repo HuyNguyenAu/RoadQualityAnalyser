@@ -11,13 +11,16 @@ import java.util.List;
 @Dao
 public interface AccelerometerDao {
     @Query("SELECT * FROM accelerometer")
-    List<Setting> getAll();
+    List<Accelerometer> getAll();
 
     @Query("SELECT * FROM accelerometer WHERE datetime = :datetime")
-    Setting getData(final String datetime);
+    List<Accelerometer> getData(final String datetime);
+
+    @Query("SELECT DISTINCT datetime FROM accelerometer")
+    List<String> getDateTimes();
 
     @Insert
-    void addData(final Accelerometer... accelerometers);
+    void addData(final Accelerometer... accelerometer);
 
     @Query("DELETE FROM accelerometer WHERE datetime = :datetime")
     void deleteData(final String datetime);

@@ -21,6 +21,9 @@ public class Accelerometer {
     @ColumnInfo(name="z")
     private float z;
 
+    @ColumnInfo(name="time_created")
+    private long timeCreated;
+
     public int getId() {
         return id;
     }
@@ -59,5 +62,13 @@ public class Accelerometer {
 
     public void setZ(final float z) {
         this.z = z;
+    }
+
+    public long getTimeCreated() {
+        return this.timeCreated;
+    }
+
+    public void setTimeCreated(final long timeCreated) {
+        this.timeCreated = timeCreated;
     }
 }

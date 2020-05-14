@@ -1,16 +1,11 @@
 package com.s3603441.roadqualityanalyser.ui.settings;
 
-import android.content.Context;
-import android.os.AsyncTask;
 import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import androidx.room.Room;
-
-import com.s3603441.roadqualityanalyser.db.AppDatabase;
 
 public class SettingsViewModel extends ViewModel {
 
@@ -36,16 +31,12 @@ public class SettingsViewModel extends ViewModel {
         return this.smoothing;
     }
 
-    public void setSmoothing(final int smoothing, final boolean mainThread) {
+    public void setSmoothing(final int smoothing) {
         if (this.smoothing == null) {
             this.smoothing = new MutableLiveData<>();
         }
 
-        if (mainThread) {
-           this.smoothing.setValue(smoothing);
-       } else {
-           this.smoothing.postValue(smoothing);
-       }
+        this.smoothing.setValue(smoothing);
     }
 
     public LiveData<Integer> getWindowSize() {
@@ -56,16 +47,12 @@ public class SettingsViewModel extends ViewModel {
         return this.windowSize;
     }
 
-    public void setWindowSize(final int windowSize, final boolean mainThread) {
+    public void setWindowSize(final int windowSize) {
         if (this.windowSize == null) {
             this.windowSize = new MutableLiveData<>();
         }
 
-        if (mainThread) {
-            this.windowSize.setValue(windowSize);
-        } else {
-            this.windowSize.postValue(windowSize);
-        }
+        this.windowSize.setValue(windowSize);
     }
 
     public LiveData<Integer> getThreshold() {
@@ -76,16 +63,12 @@ public class SettingsViewModel extends ViewModel {
         return this.threshold;
     }
 
-    public void setThreshold(final int threshold, final boolean mainThread) {
+    public void setThreshold(final int threshold) {
         if (this.threshold == null) {
             this.threshold = new MutableLiveData<>();
         }
 
-        if (mainThread) {
-            this.threshold.setValue(threshold);
-        } else {
-            this.threshold.postValue(threshold);
-        }
+        this.threshold.setValue(threshold);
     }
 
     public LiveData<Integer> getSensitivity() {
@@ -96,16 +79,12 @@ public class SettingsViewModel extends ViewModel {
         return this.sensitivity;
     }
 
-    public void setSensitivity(final int sensitivity, final boolean mainThread) {
+    public void setSensitivity(final int sensitivity) {
         if (this.sensitivity == null) {
             this.sensitivity = new MutableLiveData<>();
         }
 
-        if (mainThread) {
-            this.sensitivity.setValue(sensitivity);
-        } else {
-            this.sensitivity.postValue(sensitivity);
-        }
+        this.sensitivity.setValue(sensitivity);
     }
 
     public EditText getEditTextSmoothing() {
