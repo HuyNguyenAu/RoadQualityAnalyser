@@ -11,12 +11,17 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.formatter.IAxisValueFormatter;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.android.material.snackbar.Snackbar;
 import com.s3603441.roadqualityanalyser.R;
@@ -24,6 +29,7 @@ import com.s3603441.roadqualityanalyser.db.AppDatabase;
 import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 import com.s3603441.roadqualityanalyser.ui.home.HomeViewModel;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Analytics extends AppCompatActivity {
@@ -53,6 +59,9 @@ public class Analytics extends AppCompatActivity {
 
     private void initUI() {
         analyticsViewModel.setLineChart((LineChart) findViewById(R.id.linechart));
+        analyticsViewModel.getLineChart().getDescription().setEnabled(false);
+        analyticsViewModel.getLineChart().getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM_INSIDE);
+        analyticsViewModel.getLineChart().getXAxis().setLabelRotationAngle(90f);
     }
 
     private void initLineChart(final List<Accelerometer> data) {
@@ -79,7 +88,11 @@ public class Analytics extends AppCompatActivity {
             lineData.addDataSet(dataSetZ);
         }
 
+        List<String> times = new ArrayList<>();
+
        for (int i = 0; i < data.size(); i++) {
+           final String currentTime = data.get(i).getCurrentTime();
+
            lineData.addEntry(new Entry(dataSetX.getEntryCount(),
                    analyticsViewModel.getData().get(i).getX()), 0);
            lineData.addEntry(new Entry(dataSetY.getEntryCount(),
@@ -87,11 +100,23 @@ public class Analytics extends AppCompatActivity {
            lineData.addEntry(new Entry(dataSetZ.getEntryCount(),
                    analyticsViewModel.getData().get(i).getZ()), 2);
            lineData.notifyDataChanged();
+
+           times.add(currentTime);
+           Log.d("initLineChart", "initLineChart: " + currentTime);
+
            analyticsViewModel.getLineChart().notifyDataSetChanged();
-           analyticsViewModel.getLineChart().setVisibleXRangeMaximum(150);
-           analyticsViewModel.getLineChart().moveViewToX(lineData.getEntryCount());
        }
+
+        analyticsViewModel.getLineChart().getXAxis().setValueFormatter(new IndexAxisValueFormatter(times));
+
+//        analyticsViewModel.getLineChart().getXAxis().setValueFormatter(new ValueFormatter() {
+//            @Override
+//            public String getFormattedValue(float value) {
+//                return currentTime;
+//            }
+//        });
     }
+
 
     private void loadData(final View root) {
         final Snackbar loadingSnackbar = Snackbar.make(root, "Loading data...", Snackbar.LENGTH_INDEFINITE);

@@ -15,7 +15,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
-            android:text="HH:MM:SS"
+            android:text="HH:MM:SS:mm"
             android:textAlignment="center"
             android:textSize="24sp"
             app:layout_constraintLeft_toLeftOf="parent"

@@ -5,6 +5,7 @@ import android.hardware.SensorManager;
 import android.widget.Button;
 import android.widget.TextView;
 
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.github.mikephil.charting.charts.LineChart;
@@ -12,6 +13,7 @@ import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 
+import java.util.Date;
 import java.util.List;
 
 public class HomeViewModel extends ViewModel {
@@ -38,6 +40,9 @@ public class HomeViewModel extends ViewModel {
     // Line chart control.
     private Thread thread;
     private boolean plot;
+
+    private long startTime;
+    private MutableLiveData<String> currentTime;
 
     public HomeViewModel() {
     }
@@ -300,5 +305,29 @@ public class HomeViewModel extends ViewModel {
 
     public void setPlot(final boolean plot) {
         this.plot = plot;
+    }
+
+    public long getStartTime() {
+        return this.startTime;
+    }
+
+    public void setStartTime(final long startTime) {
+        this.startTime = startTime;
+    }
+
+    public MutableLiveData<String> getCurrentTime() {
+        if (this.currentTime == null) {
+            this.currentTime = new MutableLiveData<>();
+        }
+
+        return this.currentTime;
+    }
+
+    public void setCurrentTime(final String currentTime) {
+        if (this.currentTime == null) {
+            this.currentTime = new MutableLiveData<>();
+        }
+
+        this.currentTime.postValue(currentTime);
     }
 }

@@ -26,6 +26,9 @@ public class Accelerometer {
     @ColumnInfo(name="time_created")
     private long timeCreated;
 
+    @ColumnInfo(name="current_time")
+    private String currentTime;
+
     public int getId() {
         return id;
     }
@@ -72,5 +75,13 @@ public class Accelerometer {
 
     public void setTimeCreated(final long timeCreated) {
         this.timeCreated = timeCreated;
+    }
+
+    public String getCurrentTime() {
+        return this.currentTime;
+    }
+
+    public void setCurrentTime(final String currentTime) {
+        this.currentTime = currentTime;
     }
 }
