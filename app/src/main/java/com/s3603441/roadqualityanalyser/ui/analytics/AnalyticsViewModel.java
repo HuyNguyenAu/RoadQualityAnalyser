@@ -12,6 +12,7 @@ import java.util.List;
 public class AnalyticsViewModel extends ViewModel {
     private LineChart lineChart;
     private List<Accelerometer> data;
+    private List<String> xAxisData;
 
     // Create a new line data set.
     public LineDataSet createDataSet(final String label, final int color) {
@@ -41,5 +42,13 @@ public class AnalyticsViewModel extends ViewModel {
 
     public void setData(final List<Accelerometer> data) {
         this.data = data;
+    }
+
+    public List<String> getxAxisData() {
+        return this.xAxisData;
+    }
+
+    public void setxAxisData(final List<String> xAxisData) {
+        this.xAxisData = xAxisData;
     }
 }

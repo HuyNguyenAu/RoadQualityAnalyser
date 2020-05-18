@@ -13,12 +13,12 @@ import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 
-import java.util.Date;
 import java.util.List;
 
 public class HomeViewModel extends ViewModel {
     // Controls.
     private TextView textView_timer;
+    private TextView textView_warnings;
     private LineChart lineChart;
     private Button button_start_stop;
 
@@ -43,6 +43,7 @@ public class HomeViewModel extends ViewModel {
 
     private long startTime;
     private MutableLiveData<String> currentTime;
+    private MutableLiveData<Integer> warnings;
 
     public HomeViewModel() {
     }
@@ -187,6 +188,14 @@ public class HomeViewModel extends ViewModel {
         this.textView_timer = textView_timer;
     }
 
+    public TextView getTextViewWarnings() {
+        return this.textView_warnings;
+    }
+
+    public void setTextViewWarnings(final TextView textView_warnings) {
+        this.textView_warnings = textView_warnings;
+    }
+
     public LineChart getLineChart() {
         return this.lineChart;
     }
@@ -329,5 +338,17 @@ public class HomeViewModel extends ViewModel {
         }
 
         this.currentTime.postValue(currentTime);
+    }
+
+    public MutableLiveData<Integer> getWarnings() {
+        return this.warnings;
+    }
+
+    public void setWarnings(final int warnings) {
+        if (this.warnings == null) {
+            this.warnings = new MutableLiveData<>();
+        }
+
+        this.warnings.setValue(warnings);
     }
 }

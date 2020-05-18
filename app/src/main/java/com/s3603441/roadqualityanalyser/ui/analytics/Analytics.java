@@ -60,14 +60,16 @@ public class Analytics extends AppCompatActivity {
     private void initUI() {
         analyticsViewModel.setLineChart((LineChart) findViewById(R.id.linechart));
         analyticsViewModel.getLineChart().getDescription().setEnabled(false);
-        analyticsViewModel.getLineChart().getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM_INSIDE);
-        analyticsViewModel.getLineChart().getXAxis().setLabelRotationAngle(90f);
+        analyticsViewModel.getLineChart().getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
+        analyticsViewModel.getLineChart().getXAxis().setLabelRotationAngle(45f);
     }
 
     private void initLineChart(final List<Accelerometer> data) {
         if (analyticsViewModel.getLineChart().getData() == null) {
             analyticsViewModel.getLineChart().setData(new LineData());
         }
+
+        analyticsViewModel.setxAxisData(new ArrayList<String>());
 
         LineData lineData = analyticsViewModel.getLineChart().getData();
         ILineDataSet dataSetX = lineData.getDataSetByIndex(0);
@@ -88,11 +90,7 @@ public class Analytics extends AppCompatActivity {
             lineData.addDataSet(dataSetZ);
         }
 
-        List<String> times = new ArrayList<>();
-
        for (int i = 0; i < data.size(); i++) {
-           final String currentTime = data.get(i).getCurrentTime();
-
            lineData.addEntry(new Entry(dataSetX.getEntryCount(),
                    analyticsViewModel.getData().get(i).getX()), 0);
            lineData.addEntry(new Entry(dataSetY.getEntryCount(),
@@ -101,20 +99,13 @@ public class Analytics extends AppCompatActivity {
                    analyticsViewModel.getData().get(i).getZ()), 2);
            lineData.notifyDataChanged();
 
-           times.add(currentTime);
-           Log.d("initLineChart", "initLineChart: " + currentTime);
-
+           analyticsViewModel.getxAxisData().add(data.get(i).getCurrentTime());
            analyticsViewModel.getLineChart().notifyDataSetChanged();
        }
 
-        analyticsViewModel.getLineChart().getXAxis().setValueFormatter(new IndexAxisValueFormatter(times));
-
-//        analyticsViewModel.getLineChart().getXAxis().setValueFormatter(new ValueFormatter() {
-//            @Override
-//            public String getFormattedValue(float value) {
-//                return currentTime;
-//            }
-//        });
+       // Source: https://stackoverflow.com/questions/45320457/how-to-set-string-value-of-xaxis-in-mpandroidchart
+        analyticsViewModel.getLineChart().getXAxis().setValueFormatter(new IndexAxisValueFormatter(analyticsViewModel.getxAxisData()));
+        analyticsViewModel.getLineChart().notifyDataSetChanged();
     }
 
 

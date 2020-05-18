@@ -25,6 +25,7 @@ import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 import com.s3603441.roadqualityanalyser.ui.analytics.Analytics;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickListener{
@@ -69,7 +70,7 @@ public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickL
         showAnalytics(root.getContext().getApplicationContext(), recordingsViewModel.getMyAdapter().getItem(position));
     }
 
-    private class GetDateTimesTask extends AsyncTask <Context, Void, List<String>> {
+    private class GetDateTimesTask extends AsyncTask <Context, Void, List<Item>> {
         private View root;
 
         public GetDateTimesTask(final View root) {
@@ -77,15 +78,25 @@ public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickL
         }
 
         @Override
-        protected List<String> doInBackground(Context... contexts) {
+        protected List<Item> doInBackground(Context... contexts) {
             final AppDatabase appDatabase = Room.databaseBuilder(contexts[0],
                     AppDatabase.class, "data").build();
+            final List<String> dateTimes = appDatabase.accelerometerDao().getDateTimes();
 
-            return appDatabase.accelerometerDao().getDateTimes();
+            List<Item> items = new ArrayList<>();
+
+            for (int i = 0; i < dateTimes.size(); i++) {
+                final String dateTime = dateTimes.get(i);
+                final int warnings = appDatabase.accelerometerDao().getWarnings(dateTime);
+
+                items.add(new Item(dateTime, warnings));
+            }
+
+            return items;
         }
 
         @Override
-        protected void onPostExecute(final List<String> result) {
+        protected void onPostExecute(final List<Item> result) {
             recordingsViewModel.setItems(result);
             initRecyclerView(root);
         }

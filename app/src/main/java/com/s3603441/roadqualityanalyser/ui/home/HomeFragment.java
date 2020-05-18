@@ -22,10 +22,8 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.room.Room;
 
 import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.android.material.snackbar.Snackbar;
 import com.s3603441.roadqualityanalyser.R;
@@ -35,13 +33,16 @@ import com.s3603441.roadqualityanalyser.db.settings.Setting;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class HomeFragment extends Fragment implements SensorEventListener {
 
     private HomeViewModel homeViewModel;
+    private boolean trigger = false;
 
     // Tells the line chart to start or stop plotting.
     // This is used in another thread.
@@ -64,6 +65,7 @@ public class HomeFragment extends Fragment implements SensorEventListener {
     public void initUI(final View root) {
         // Register controls.
         homeViewModel.setTextViewTimer((TextView) root.findViewById(R.id.textView_timer));
+        homeViewModel.setTextViewWarnings((TextView) root.findViewById(R.id.textView_warnings));
         homeViewModel.setLineChart((LineChart) root.findViewById(R.id.linechart));
         homeViewModel.setButtonStartStop((Button) root.findViewById(R.id.button_start_stop));
 
@@ -85,13 +87,12 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         homeViewModel.getLineChart().getDescription().setEnabled(false);
         homeViewModel.getLineChart().setDrawGridBackground(false);
         homeViewModel.getLineChart().getXAxis().setDrawGridLines(false);
-        homeViewModel.getLineChart().getXAxis().setDrawLabels(true);
+        homeViewModel.getLineChart().getXAxis().setDrawLabels(false);
         homeViewModel.getLineChart().setData(new LineData());
-        homeViewModel.getLineChart().getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM_INSIDE);
-        homeViewModel.getLineChart().getXAxis().setLabelRotationAngle(90f);
 
         // By default, the app does not plot data.
         homeViewModel.setPlot(false);
+        homeViewModel.setWarnings(0);
         start = false;
 
         // Setup accelerometer.
@@ -130,17 +131,10 @@ public class HomeFragment extends Fragment implements SensorEventListener {
             public void doTask() {
                 homeViewModel.setPlot(true);
 
-                final long delta = SystemClock.uptimeMillis() - homeViewModel.getStartTime();
-                // Source: https://stackoverflow.com/questions/10874048/from-milliseconds-to-hour-minutes-seconds-and-milliseconds
-                final int seconds = (int) (delta / 1000) % 60 ;
-                final int minutes = (int) ((delta / (1000 * 60)) % 60);
-                final int hours = (int) ((delta / (1000 * 60 * 60)) % 24);
-                final long milliseconds = delta - (Long.valueOf(seconds) * 1000);
-
-                homeViewModel.setCurrentTime(String.format("%02d", hours) + ":"
-                        + String.format("%02d", minutes) + ":"
-                        + String.format("%02d", seconds) + ":"
-                        + String.format("%04d", milliseconds));
+                final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Australia/Melbourne"));
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm:ss:SS");
+                simpleDateFormat.setTimeZone(TimeZone.getTimeZone("Australia/Melbourne"));
+                homeViewModel.setCurrentTime(simpleDateFormat.format(calendar.getTime()));
 
                 try {
                     Thread.sleep(10);
@@ -160,12 +154,19 @@ public class HomeFragment extends Fragment implements SensorEventListener {
     public void initObservers() {
         final Observer<String> currentTimeObserver = new Observer<String>() {
             @Override
-            public void onChanged(String currentTime) {
-                homeViewModel.getTextViewTimer().setText(currentTime);
+            public void onChanged(final String currentTime) {
+                homeViewModel.getTextViewTimer().setText("Current Time: " + currentTime);
+            }
+        };
+        final Observer<Integer> warningsObserver = new Observer<Integer>() {
+            @Override
+            public void onChanged(final Integer warnings) {
+                homeViewModel.getTextViewWarnings().setText("Current Warnings: " + warnings);
             }
         };
 
         homeViewModel.getCurrentTime().observe(getViewLifecycleOwner(), currentTimeObserver);
+        homeViewModel.getWarnings().observe(getViewLifecycleOwner(), warningsObserver);
     }
 
     public void buttonStartStopClicked(final View root) {
@@ -246,14 +247,27 @@ public class HomeFragment extends Fragment implements SensorEventListener {
                 }
 
                 // Update the line chart and move the new data into view.
-                if (homeViewModel.initialLimit(homeViewModel.getFilteredData().size(), homeViewModel.getWindowSize())) {
+                if (homeViewModel.initialLimit(homeViewModel.getFilteredData().size(),
+                        homeViewModel.getWindowSize())) {
                     final Accelerometer windowFiltedData = new Accelerometer();
                     windowFiltedData.setTimeCreated(System.currentTimeMillis());
                     windowFiltedData.setCurrentTime(homeViewModel.getCurrentTime().getValue());
                     windowFiltedData.setDatetime(homeViewModel.getDateTimeStartCreated());
-                    windowFiltedData.setX(homeViewModel.windowFilter(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 0));
-                    windowFiltedData.setY(homeViewModel.windowFilter(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 1));
-                    windowFiltedData.setZ(homeViewModel.windowFilter(homeViewModel.getFilteredData(), homeViewModel.getWindowSize(), 2));
+                    windowFiltedData.setX(homeViewModel.windowFilter(homeViewModel.getFilteredData(),
+                            homeViewModel.getWindowSize(), 0));
+                    windowFiltedData.setY(homeViewModel.windowFilter(homeViewModel.getFilteredData(),
+                            homeViewModel.getWindowSize(), 1));
+                    windowFiltedData.setZ(homeViewModel.windowFilter(homeViewModel.getFilteredData(),
+                            homeViewModel.getWindowSize(), 2));
+                    windowFiltedData.setDetectionValueX(homeViewModel.getDetectionValue(
+                            homeViewModel.getWindowFilteredData(), homeViewModel.getWindowSize(),
+                            0,homeViewModel.getSensitivity() / 100.0f));
+                    windowFiltedData.setDetectionValueY(homeViewModel.getDetectionValue(
+                            homeViewModel.getWindowFilteredData(), homeViewModel.getWindowSize(),
+                            1,homeViewModel.getSensitivity() / 100.0f));
+                    windowFiltedData.setDetectionValueZ(homeViewModel.getDetectionValue(
+                            homeViewModel.getWindowFilteredData(), homeViewModel.getWindowSize(),
+                            2,homeViewModel.getSensitivity() / 100.0f));
 
                     homeViewModel.getWindowFilteredData().add(windowFiltedData);
 
@@ -265,18 +279,21 @@ public class HomeFragment extends Fragment implements SensorEventListener {
                             windowFiltedData.getZ()), 2);
                     lineData.notifyDataChanged();
 
-                    homeViewModel.getLineChart().getXAxis().setValueFormatter(new ValueFormatter() {
-                        @Override
-                        public String getFormattedValue(float value) {
-                            return homeViewModel.getCurrentTime().getValue();
-                        }
-                    });
-
                     // Threshold testing.
-                    if (homeViewModel.getDetectionValue(homeViewModel.getWindowFilteredData(), homeViewModel.getWindowSize(), 1,
-                            homeViewModel.getSensitivity() / 100.0f) >= homeViewModel.getThreshold()) {
-                        Snackbar.make(getView(), "Danger!", Snackbar.LENGTH_SHORT).show();
+                    if (windowFiltedData.getDetectionValueY() >= homeViewModel.getThreshold()) {
+                        if (!trigger) {
+                            trigger = true;
+                            homeViewModel.setWarnings(homeViewModel.getWarnings().getValue() + 1);
+                            Snackbar.make(getView(), "Danger!", Snackbar.LENGTH_SHORT).show();
+
+                            final int lastIndex = homeViewModel.getWindowFilteredData().size() - 1;
+                            homeViewModel.getWindowFilteredData().get(lastIndex).setWarnings(
+                                    homeViewModel.getWarnings().getValue());
+                        }
+                    } else {
+                        trigger = false;
                     }
+
                     homeViewModel.getLineChart().notifyDataSetChanged();
                     homeViewModel.getLineChart().setVisibleXRangeMaximum(150);
                     homeViewModel.getLineChart().moveViewToX(lineData.getEntryCount());
@@ -450,6 +467,8 @@ public class HomeFragment extends Fragment implements SensorEventListener {
 
             // Set the start_stop button text accordingly.
             homeViewModel.getButtonStartStop().setText("Start");
+            homeViewModel.getTextViewTimer().setText("Current Time: HH:MM:SS:mm");
+            homeViewModel.setWarnings(0);
             super.onPostExecute(aVoid);
         }
     }

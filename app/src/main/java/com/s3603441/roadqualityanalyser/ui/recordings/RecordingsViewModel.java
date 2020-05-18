@@ -9,7 +9,7 @@ public class RecordingsViewModel extends ViewModel {
 
     private RecyclerView recyclerView;
     private MyAdapter myAdapter;
-    private List<String> items;
+    private List<Item> items;
 
     public RecordingsViewModel() {
     }
@@ -30,11 +30,11 @@ public class RecordingsViewModel extends ViewModel {
         this.myAdapter = myAdapter;
     }
 
-    public List<String> getItems() {
+    public List<Item> getItems() {
         return this.items;
     }
 
-    public void setItems(final List<String> items) {
+    public void setItems(final List<Item> items) {
         this.items = items;
     }
 }

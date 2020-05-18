@@ -29,6 +29,18 @@ public class Accelerometer {
     @ColumnInfo(name="current_time")
     private String currentTime;
 
+    @ColumnInfo(name="detection_value_x")
+    private float detectionValueX;
+
+    @ColumnInfo(name="detection_value_y")
+    private float detectionValueY;
+
+    @ColumnInfo(name="detection_value_z")
+    private float detectionValueZ;
+
+    @ColumnInfo(name="warnings")
+    private int warnings;
+
     public int getId() {
         return id;
     }
@@ -83,5 +95,37 @@ public class Accelerometer {
 
     public void setCurrentTime(final String currentTime) {
         this.currentTime = currentTime;
+    }
+
+    public float getDetectionValueX() {
+        return this.detectionValueX;
+    }
+
+    public void setDetectionValueX(final float detectionValueX) {
+        this.detectionValueX = detectionValueX;
+    }
+
+    public float getDetectionValueY() {
+        return this.detectionValueY;
+    }
+
+    public void setDetectionValueY(final float detectionValueY) {
+        this.detectionValueY = detectionValueY;
+    }
+
+    public float getDetectionValueZ() {
+        return this.detectionValueZ;
+    }
+
+    public void setDetectionValueZ(final float detectionValueZ) {
+        this.detectionValueZ = detectionValueZ;
+    }
+
+    public int getWarnings() {
+        return this.warnings;
+    }
+
+    public void setWarnings(final int warnings) {
+        this.warnings = warnings;
     }
 }

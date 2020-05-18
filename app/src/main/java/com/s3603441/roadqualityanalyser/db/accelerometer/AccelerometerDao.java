@@ -19,6 +19,9 @@ public interface AccelerometerDao {
     @Query("SELECT DISTINCT datetime FROM accelerometer")
     List<String> getDateTimes();
 
+    @Query("SELECT MAX(warnings) FROM accelerometer WHERE datetime = :datetime")
+    int getWarnings(final String datetime);
+
     @Insert
     void addData(final Accelerometer... accelerometer);
 
