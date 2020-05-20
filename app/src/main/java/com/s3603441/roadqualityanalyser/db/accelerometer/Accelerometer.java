@@ -41,6 +41,12 @@ public class Accelerometer {
     @ColumnInfo(name="warnings")
     private int warnings;
 
+    @ColumnInfo(name="latitude")
+    private double latitude;
+
+    @ColumnInfo(name="longitude")
+    private double longitude;
+
     public int getId() {
         return id;
     }
@@ -127,5 +133,21 @@ public class Accelerometer {
 
     public void setWarnings(final int warnings) {
         this.warnings = warnings;
+    }
+
+    public double getLatitude() {
+        return this.latitude;
+    }
+
+    public void setLatitude(final double latitude) {
+        this.latitude = latitude;
+    }
+
+    public double getLongitude() {
+        return this.longitude;
+    }
+
+    public void setLongitude(final double longitude) {
+        this.longitude = longitude;
     }
 }

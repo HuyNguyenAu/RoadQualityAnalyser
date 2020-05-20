@@ -11,6 +11,11 @@ import androidx.lifecycle.ViewModel;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.LineDataSet;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 
 import java.util.List;
@@ -41,9 +46,15 @@ public class HomeViewModel extends ViewModel {
     private Thread thread;
     private boolean plot;
 
-    private long startTime;
+    // Tracking data.
     private MutableLiveData<String> currentTime;
     private MutableLiveData<Integer> warnings;
+    private GoogleMap Map;
+    private FusedLocationProviderClient FusedLocationClient;
+    private LocationRequest LocationRequest;
+    private long updateInterval;
+    private long fastestInterval;
+    private LatLng currentLocation;
 
     public HomeViewModel() {
     }
@@ -316,14 +327,6 @@ public class HomeViewModel extends ViewModel {
         this.plot = plot;
     }
 
-    public long getStartTime() {
-        return this.startTime;
-    }
-
-    public void setStartTime(final long startTime) {
-        this.startTime = startTime;
-    }
-
     public MutableLiveData<String> getCurrentTime() {
         if (this.currentTime == null) {
             this.currentTime = new MutableLiveData<>();
@@ -350,5 +353,53 @@ public class HomeViewModel extends ViewModel {
         }
 
         this.warnings.setValue(warnings);
+    }
+
+    public GoogleMap getMap() {
+        return Map;
+    }
+
+    public void setMap(GoogleMap map) {
+        Map = map;
+    }
+
+    public FusedLocationProviderClient getFusedLocationClient() {
+        return FusedLocationClient;
+    }
+
+    public void setFusedLocationClient(final FusedLocationProviderClient fusedLocationClient) {
+        FusedLocationClient = fusedLocationClient;
+    }
+
+    public com.google.android.gms.location.LocationRequest getLocationRequest() {
+        return LocationRequest;
+    }
+
+    public void setLocationRequest(final com.google.android.gms.location.LocationRequest locationRequest) {
+        LocationRequest = locationRequest;
+    }
+
+    public long getUpdateInterval() {
+        return updateInterval;
+    }
+
+    public void setUpdateInterval(final long updateInterval) {
+        this.updateInterval = updateInterval;
+    }
+
+    public long getFastestInterval() {
+        return fastestInterval;
+    }
+
+    public void setFastestInterval(final long fastestInterval) {
+        this.fastestInterval = fastestInterval;
+    }
+
+    public LatLng getCurrentLocation() {
+        return currentLocation;
+    }
+
+    public void setCurrentLocation(final LatLng currentLocation) {
+        this.currentLocation = currentLocation;
     }
 }

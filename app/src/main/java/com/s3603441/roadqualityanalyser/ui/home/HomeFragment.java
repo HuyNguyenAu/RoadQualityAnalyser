@@ -1,14 +1,20 @@
 package com.s3603441.roadqualityanalyser.ui.home;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.Location;
+import android.location.LocationListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Looper;
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +22,8 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
@@ -25,6 +33,19 @@ import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.snackbar.Snackbar;
 import com.s3603441.roadqualityanalyser.R;
 import com.s3603441.roadqualityanalyser.db.AppDatabase;
@@ -39,10 +60,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-public class HomeFragment extends Fragment implements SensorEventListener {
+public class HomeFragment extends Fragment implements SensorEventListener, LocationListener,
+        OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private HomeViewModel homeViewModel;
     private boolean trigger = false;
+    private volatile boolean ready = false;
 
     // Tells the line chart to start or stop plotting.
     // This is used in another thread.
@@ -58,6 +81,7 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         initPlotThread();
         initSettings(root, root.getContext().getApplicationContext());
         initObservers();
+        initLocation();
 
         return root;
     }
@@ -120,7 +144,7 @@ public class HomeFragment extends Fragment implements SensorEventListener {
             public void run() {
                 while (true) {
                     // Only plot when start is true.
-                    if (start) {
+                    if (start && ready) {
                         doTask();
                     }
                 }
@@ -169,6 +193,46 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         homeViewModel.getWarnings().observe(getViewLifecycleOwner(), warningsObserver);
     }
 
+    public void initLocation() {
+        homeViewModel.setUpdateInterval(10);
+        homeViewModel.setFastestInterval(10);
+        homeViewModel.setFusedLocationClient(LocationServices.getFusedLocationProviderClient(getActivity().getApplicationContext()));
+
+        if (ActivityCompat.checkSelfPermission(getContext().getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    0);
+        }
+
+        startLocationUpdates();
+
+        homeViewModel.getFusedLocationClient().requestLocationUpdates(homeViewModel.getLocationRequest(), new LocationCallback() {
+                    @Override
+                    public void onLocationResult(LocationResult locationResult) {
+                        // do work here
+                        onLocationChanged(locationResult.getLastLocation());
+                    }
+                },
+                Looper.myLooper());
+    }
+
+    protected void startLocationUpdates() {
+        // Create the location request to start receiving updates
+        homeViewModel.setLocationRequest(new LocationRequest());
+        homeViewModel.getLocationRequest().setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        homeViewModel.getLocationRequest().setInterval(homeViewModel.getUpdateInterval());
+        homeViewModel.getLocationRequest().setFastestInterval(homeViewModel.getFastestInterval());
+
+        // Create LocationSettingsRequest object using location request
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
+        builder.addLocationRequest(homeViewModel.getLocationRequest());
+        LocationSettingsRequest locationSettingsRequest = builder.build();
+
+        // Check whether location settings are satisfied
+        // https://developers.google.com/android/reference/com/google/android/gms/location/SettingsClient
+        SettingsClient settingsClient = LocationServices.getSettingsClient(getActivity());
+        settingsClient.checkLocationSettings(locationSettingsRequest);
+    }
+
     public void buttonStartStopClicked(final View root) {
         if (!start) {
             // Load the smoothing factor, window size, and threshold in a separate thread.
@@ -182,7 +246,6 @@ public class HomeFragment extends Fragment implements SensorEventListener {
             stopTask.execute(homeViewModel.getWindowFilteredData());
         }
     }
-
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -261,13 +324,16 @@ public class HomeFragment extends Fragment implements SensorEventListener {
                             homeViewModel.getWindowSize(), 2));
                     windowFiltedData.setDetectionValueX(homeViewModel.getDetectionValue(
                             homeViewModel.getWindowFilteredData(), homeViewModel.getWindowSize(),
-                            0,homeViewModel.getSensitivity() / 100.0f));
+                            0, homeViewModel.getSensitivity() / 100.0f));
                     windowFiltedData.setDetectionValueY(homeViewModel.getDetectionValue(
                             homeViewModel.getWindowFilteredData(), homeViewModel.getWindowSize(),
-                            1,homeViewModel.getSensitivity() / 100.0f));
+                            1, homeViewModel.getSensitivity() / 100.0f));
                     windowFiltedData.setDetectionValueZ(homeViewModel.getDetectionValue(
                             homeViewModel.getWindowFilteredData(), homeViewModel.getWindowSize(),
-                            2,homeViewModel.getSensitivity() / 100.0f));
+                            2, homeViewModel.getSensitivity() / 100.0f));
+
+                    windowFiltedData.setLatitude(homeViewModel.getCurrentLocation().latitude);
+                    windowFiltedData.setLongitude(homeViewModel.getCurrentLocation().longitude);
 
                     homeViewModel.getWindowFilteredData().add(windowFiltedData);
 
@@ -335,6 +401,47 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         // Mark the thread for garbage collection.
         homeViewModel.getThread().interrupt();
         super.onDetach();
+    }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        ready = true;
+        Log.d("onLocationChanged", "onLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+        homeViewModel.setCurrentLocation(new LatLng(location.getLatitude(), location.getLongitude()));
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
     }
 
     private class InitSettingsTask extends AsyncTask<Context, Void, Void> {
@@ -421,7 +528,6 @@ public class HomeFragment extends Fragment implements SensorEventListener {
             start = true;
             // Set the start_stop button text accordingly.
             homeViewModel.getButtonStartStop().setText("Stop");
-            homeViewModel.setStartTime(SystemClock.uptimeMillis());
 
             super.onPostExecute(settings);
         }
