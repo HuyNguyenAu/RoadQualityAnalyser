@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.view.MenuItem;
 
 import com.s3603441.roadqualityanalyser.R;
-import com.s3603441.roadqualityanalyser.ui.analytics.SectionsPagerAdapter;
 
 public class Analytics extends AppCompatActivity {
 
@@ -22,9 +21,10 @@ public class Analytics extends AppCompatActivity {
         setContentView(R.layout.activity_analytics);
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        SectionsPagerAdapter sectionsPagerAdapter = new SectionsPagerAdapter(this, getSupportFragmentManager());
+
+        final AnalyticsPagerAdapter analyticsPagerAdapter = new AnalyticsPagerAdapter(this, getSupportFragmentManager(), getIntent().getExtras().getString("dateTime"));
         ViewPager viewPager = findViewById(R.id.view_pager);
-        viewPager.setAdapter(sectionsPagerAdapter);
+        viewPager.setAdapter(analyticsPagerAdapter);
         TabLayout tabs = findViewById(R.id.tabs);
         tabs.setupWithViewPager(viewPager);
     }

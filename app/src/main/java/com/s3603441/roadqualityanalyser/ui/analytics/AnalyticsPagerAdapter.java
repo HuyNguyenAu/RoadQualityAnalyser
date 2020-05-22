@@ -14,22 +14,28 @@ import com.s3603441.roadqualityanalyser.R;
  * A [FragmentPagerAdapter] that returns a fragment corresponding to
  * one of the sections/tabs/pages.
  */
-public class SectionsPagerAdapter extends FragmentPagerAdapter {
+public class AnalyticsPagerAdapter extends FragmentPagerAdapter {
 
     @StringRes
-    private static final int[] TAB_TITLES = new int[]{R.string.tab_text_1, R.string.tab_text_2};
+    private static final int[] TAB_TITLES = new int[]{R.string.tab_text_map, R.string.tab_text_graph};
     private final Context mContext;
+    private String dateTime;
 
-    public SectionsPagerAdapter(Context context, FragmentManager fm) {
+    public AnalyticsPagerAdapter(Context context, FragmentManager fm, final String dateTime) {
         super(fm);
         mContext = context;
+        setDateTime(dateTime);
     }
 
     @Override
     public Fragment getItem(int position) {
-        // getItem is called to instantiate the fragment for the given page.
-        // Return a PlaceholderFragment (defined as a static inner class below).
-        return PlaceholderFragment.newInstance(position + 1);
+       Fragment fragment = PlaceholderFragment.newInstance(position + 1);
+
+       if (position == 1) {
+           fragment = PlaceholderFragment.newInstanceGraph(getDateTime());
+       }
+
+        return fragment;
     }
 
     @Nullable
@@ -42,5 +48,13 @@ public class SectionsPagerAdapter extends FragmentPagerAdapter {
     public int getCount() {
         // Show 2 total pages.
         return 2;
+    }
+
+    public String getDateTime() {
+        return this.dateTime;
+    }
+
+    public void setDateTime(final String dateTime) {
+        this.dateTime = dateTime;
     }
 }

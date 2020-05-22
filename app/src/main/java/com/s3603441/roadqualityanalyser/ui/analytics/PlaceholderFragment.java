@@ -13,6 +13,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.s3603441.roadqualityanalyser.R;
+import com.s3603441.roadqualityanalyser.ui.analytics_graph.AnalyticsGraph;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -29,6 +30,14 @@ public class PlaceholderFragment extends Fragment {
         bundle.putInt(ARG_SECTION_NUMBER, index);
         fragment.setArguments(bundle);
         return fragment;
+    }
+
+    public static AnalyticsGraph newInstanceGraph(final String dateTime) {
+        AnalyticsGraph analyticsGraph = new AnalyticsGraph();
+        Bundle bundle = new Bundle();
+        bundle.putString("dateTime", dateTime);
+        analyticsGraph.setArguments(bundle);
+        return analyticsGraph;
     }
 
     @Override
@@ -48,7 +57,7 @@ public class PlaceholderFragment extends Fragment {
             Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_analytics, container, false);
         final TextView textView = root.findViewById(R.id.section_label);
-        pageViewModel.getText().observe(this, new Observer<String>() {
+        pageViewModel.getText().observe(getViewLifecycleOwner(), new Observer<String>() {
             @Override
             public void onChanged(@Nullable String s) {
                 textView.setText(s);

@@ -33,28 +33,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AnalyticsGraph extends Fragment {
-
     private AnalyticsGraphViewModel analyticsGraphViewModel;
-
-    public static AnalyticsGraph newInstance() {
-        return new AnalyticsGraph();
-    }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        final View root =  inflater.inflate(R.layout.analytics_graph_fragment, container, false);
+        analyticsGraphViewModel = new ViewModelProvider(this).get(AnalyticsGraphViewModel.class);
+        // https://stackoverflow.com/questions/47666685/java-lang-illegalargumentexception-no-suitable-parent-found-from-the-given-view
+        final View root = inflater.inflate(R.layout.analytics_graph_fragment, container, false);
 
         initUI(root);
-        loadData(root);
+        loadData(getActivity().findViewById(android.R.id.content));
 
         return root;
-    }
-
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        analyticsGraphViewModel = new ViewModelProvider(this).get(AnalyticsGraphViewModel.class);
     }
 
     private void initUI(final View root) {
