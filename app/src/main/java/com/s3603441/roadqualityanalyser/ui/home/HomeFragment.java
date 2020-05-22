@@ -13,7 +13,6 @@ import android.location.LocationListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,7 +25,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.room.Room;
 
 import com.github.mikephil.charting.charts.LineChart;
@@ -35,7 +34,6 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
@@ -45,7 +43,6 @@ import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.snackbar.Snackbar;
 import com.s3603441.roadqualityanalyser.R;
 import com.s3603441.roadqualityanalyser.db.AppDatabase;
@@ -73,8 +70,7 @@ public class HomeFragment extends Fragment implements SensorEventListener, Locat
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        homeViewModel =
-                ViewModelProviders.of(this).get(HomeViewModel.class);
+        homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
         final View root = inflater.inflate(R.layout.fragment_home, container, false);
 
         initUI(root);
@@ -88,7 +84,6 @@ public class HomeFragment extends Fragment implements SensorEventListener, Locat
 
     public void initUI(final View root) {
         // Register controls.
-        homeViewModel.setTextViewTimer((TextView) root.findViewById(R.id.textView_timer));
         homeViewModel.setTextViewWarnings((TextView) root.findViewById(R.id.textView_warnings));
         homeViewModel.setLineChart((LineChart) root.findViewById(R.id.linechart));
         homeViewModel.setButtonStartStop((Button) root.findViewById(R.id.button_start_stop));
@@ -176,12 +171,6 @@ public class HomeFragment extends Fragment implements SensorEventListener, Locat
     }
 
     public void initObservers() {
-        final Observer<String> currentTimeObserver = new Observer<String>() {
-            @Override
-            public void onChanged(final String currentTime) {
-                homeViewModel.getTextViewTimer().setText("Current Time: " + currentTime);
-            }
-        };
         final Observer<Integer> warningsObserver = new Observer<Integer>() {
             @Override
             public void onChanged(final Integer warnings) {
@@ -189,7 +178,6 @@ public class HomeFragment extends Fragment implements SensorEventListener, Locat
             }
         };
 
-        homeViewModel.getCurrentTime().observe(getViewLifecycleOwner(), currentTimeObserver);
         homeViewModel.getWarnings().observe(getViewLifecycleOwner(), warningsObserver);
     }
 
@@ -573,7 +561,6 @@ public class HomeFragment extends Fragment implements SensorEventListener, Locat
 
             // Set the start_stop button text accordingly.
             homeViewModel.getButtonStartStop().setText("Start");
-            homeViewModel.getTextViewTimer().setText("Current Time: HH:MM:SS:mm");
             homeViewModel.setWarnings(0);
             super.onPostExecute(aVoid);
         }

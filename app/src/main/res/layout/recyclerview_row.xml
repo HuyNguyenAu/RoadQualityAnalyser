@@ -6,8 +6,17 @@
     android:padding="10dp">
 
     <TextView
-        android:id="@+id/tvAnimalName"
+        android:id="@+id/datetime"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="20sp"/>
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/warnings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/coordinates"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
 </LinearLayout>

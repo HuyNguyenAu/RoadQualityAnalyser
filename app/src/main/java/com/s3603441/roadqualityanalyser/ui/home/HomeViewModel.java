@@ -22,7 +22,6 @@ import java.util.List;
 
 public class HomeViewModel extends ViewModel {
     // Controls.
-    private TextView textView_timer;
     private TextView textView_warnings;
     private LineChart lineChart;
     private Button button_start_stop;
@@ -189,14 +188,6 @@ public class HomeViewModel extends ViewModel {
         set.setMode(LineDataSet.Mode.CUBIC_BEZIER);
         set.setCubicIntensity(0.2f);
         return set;
-    }
-
-    public TextView getTextViewTimer() {
-        return this.textView_timer;
-    }
-
-    public void setTextViewTimer(final TextView textView_timer) {
-        this.textView_timer = textView_timer;
     }
 
     public TextView getTextViewWarnings() {

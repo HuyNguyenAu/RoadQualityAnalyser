@@ -1,4 +1,4 @@
-package com.s3603441.roadqualityanalyser.ui.analytics;
+package com.s3603441.roadqualityanalyser.ui.analytics_graph;
 
 import androidx.lifecycle.ViewModel;
 
@@ -9,7 +9,7 @@ import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 
 import java.util.List;
 
-public class AnalyticsViewModel extends ViewModel {
+public class AnalyticsGraphViewModel extends ViewModel {
     private LineChart lineChart;
     private List<Accelerometer> data;
     private List<String> xAxisData;

@@ -31,8 +31,10 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
 
     @Override
     public void onBindViewHolder(final ViewHolder holder, final int position) {
-        final String text = items.get(position).getDateTime() + " | Warnings: " + items.get(position).getWarnings();
-        holder.textView.setText(text);
+        holder.textView_datetime.setText("Datetime: " + items.get(position).getDateTime());
+        holder.textView_warnings.setText("Total Warnings: " + items.get(position).getWarnings());
+        holder.textView_coordinates.setText("Starting Coordinates: " + items.get(position).getLatitude() + ", "
+                + items.get(position).getLongitude());
     }
 
     @Override
@@ -41,11 +43,15 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
-        TextView textView;
+        TextView textView_datetime;
+        TextView textView_warnings;
+        TextView textView_coordinates;
 
         ViewHolder(final View itemView) {
             super(itemView);
-            textView = itemView.findViewById(R.id.tvAnimalName);
+            textView_datetime = itemView.findViewById(R.id.datetime);
+            textView_warnings = itemView.findViewById(R.id.warnings);
+            textView_coordinates = itemView.findViewById(R.id.coordinates);
             itemView.setOnClickListener(this);
         }
 

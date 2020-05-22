@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,30 +11,27 @@ import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
 
-import com.google.android.material.snackbar.Snackbar;
 import com.s3603441.roadqualityanalyser.R;
 import com.s3603441.roadqualityanalyser.db.AppDatabase;
 import com.s3603441.roadqualityanalyser.db.accelerometer.Accelerometer;
 import com.s3603441.roadqualityanalyser.ui.analytics.Analytics;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickListener{
+public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickListener {
 
     private RecordingsViewModel recordingsViewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        recordingsViewModel =
-                ViewModelProviders.of(this).get(RecordingsViewModel.class);
+        recordingsViewModel = new ViewModelProvider(this).get(RecordingsViewModel.class);
         final View root = inflater.inflate(R.layout.fragment_recordings, container, false);
 
         initUI(root);
@@ -70,7 +66,7 @@ public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickL
         showAnalytics(root.getContext().getApplicationContext(), recordingsViewModel.getMyAdapter().getItem(position));
     }
 
-    private class GetDateTimesTask extends AsyncTask <Context, Void, List<Item>> {
+    private class GetDateTimesTask extends AsyncTask<Context, Void, List<Item>> {
         private View root;
 
         public GetDateTimesTask(final View root) {
@@ -88,8 +84,9 @@ public class RecordingsFragment extends Fragment implements MyAdapter.ItemClickL
             for (int i = 0; i < dateTimes.size(); i++) {
                 final String dateTime = dateTimes.get(i);
                 final int warnings = appDatabase.accelerometerDao().getWarnings(dateTime);
+                final Accelerometer firstItem = appDatabase.accelerometerDao().getData(dateTime).get(0);
 
-                items.add(new Item(dateTime, warnings));
+                items.add(new Item(dateTime, warnings, firstItem.getLatitude(), firstItem.getLongitude()));
             }
 
             return items;
