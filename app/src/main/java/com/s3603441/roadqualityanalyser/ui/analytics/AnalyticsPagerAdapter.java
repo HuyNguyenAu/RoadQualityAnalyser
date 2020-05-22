@@ -29,7 +29,7 @@ public class AnalyticsPagerAdapter extends FragmentPagerAdapter {
 
     @Override
     public Fragment getItem(int position) {
-       Fragment fragment = PlaceholderFragment.newInstance(position + 1);
+       Fragment fragment = PlaceholderFragment.newInstanceMap(getDateTime());
 
        if (position == 1) {
            fragment = PlaceholderFragment.newInstanceGraph(getDateTime());

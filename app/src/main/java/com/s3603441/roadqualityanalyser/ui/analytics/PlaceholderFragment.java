@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProviders;
 
 import com.s3603441.roadqualityanalyser.R;
 import com.s3603441.roadqualityanalyser.ui.analytics_graph.AnalyticsGraph;
+import com.s3603441.roadqualityanalyser.ui.analytics_map.AnalyticsMap;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -24,12 +25,12 @@ public class PlaceholderFragment extends Fragment {
 
     private PageViewModel pageViewModel;
 
-    public static PlaceholderFragment newInstance(int index) {
-        PlaceholderFragment fragment = new PlaceholderFragment();
+    public static AnalyticsMap newInstanceMap(final String dateTime) {
+        AnalyticsMap analyticsMap = new AnalyticsMap();
         Bundle bundle = new Bundle();
-        bundle.putInt(ARG_SECTION_NUMBER, index);
-        fragment.setArguments(bundle);
-        return fragment;
+        bundle.putString("dateTime", dateTime);
+        analyticsMap.setArguments(bundle);
+        return analyticsMap;
     }
 
     public static AnalyticsGraph newInstanceGraph(final String dateTime) {

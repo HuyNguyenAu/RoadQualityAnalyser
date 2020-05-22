@@ -131,6 +131,7 @@ public class AnalyticsGraph extends Fragment {
             analyticsGraphViewModel.setData(data);
             initLineChart(analyticsGraphViewModel.getData());
             loadingSnackbar.dismiss();
+            Snackbar.make(root, "Loaded data successfully!", Snackbar.LENGTH_LONG);
         }
     }
 }
